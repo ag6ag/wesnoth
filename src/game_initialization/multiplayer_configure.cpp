@@ -108,7 +108,7 @@ configure::configure(game_display& disp, const config &cfg, chat& c, config& gam
 	// Build the list of scenarios to play
 
 	DBG_MP << "constructing multiplayer configure dialog" << std::endl;
-	
+
 	countdown_game_.set_check(engine_.mp_countdown_default());
 	countdown_game_.set_help_string(_("Enables user time limit"));
 
@@ -296,7 +296,7 @@ void configure::get_parameters()
 		countdown_init_time_slider_.value() : -1;
 	if(mp_countdown_reservoir_time_val > 0 && mp_countdown_init_time_val > mp_countdown_reservoir_time_val)
 		mp_countdown_init_time_val = mp_countdown_reservoir_time_val;
-	
+
 	// Updates the values in the configure_engine to match
 	// the values selected by the user with the widgets:
 	engine_.set_game_name(name_entry_.text());
@@ -567,8 +567,8 @@ void configure::layout_children(const SDL_Rect& rect)
 
 	int slider_width = options_pane_left_.width() - 40;
 
-	unsigned int xpos_left = 0;
-	unsigned int ypos_left = 0;
+	int xpos_left = 0;
+	int ypos_left = 0;
 
 	ypos_left += 2 * border_size;
 	options_pane_left_.add_widget(&shuffle_sides_, xpos_left, ypos_left);

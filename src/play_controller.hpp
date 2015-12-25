@@ -137,9 +137,9 @@ public:
 		gamestate().end_level_data_ = data;
 	}
 	void reset_end_level_data() {
-		gamestate().end_level_data_ = boost::none_t();
+		gamestate().end_level_data_ = boost::none;
 	}
-	bool is_regular_game_end() const { 
+	bool is_regular_game_end() const {
 		return gamestate().end_level_data_.get_ptr() != NULL;
 	}
 	const end_level_data& get_end_level_data_const() const {
@@ -366,7 +366,7 @@ private:
 
 protected:
 	bool player_type_changed_;
-	
+
 	virtual void sync_end_turn() {};
 	virtual void check_time_over();
 	virtual void update_viewing_player() = 0;

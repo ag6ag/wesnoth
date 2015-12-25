@@ -36,6 +36,7 @@
 #include "gui/widgets/minimap.hpp"
 #include "gui/widgets/settings.hpp"
 #include "gui/widgets/text_box.hpp"
+#include "gui/widgets/toggle_button.hpp"
 #include "gui/widgets/window.hpp"
 #include "language.hpp"
 #include "preferences_display.hpp"
@@ -43,6 +44,12 @@
 
 #include <cctype>
 #include <boost/bind.hpp>
+
+/* Helper function for determining if the selected save is a replay */
+static bool is_replay_save(const config& cfg)
+{
+	return cfg["replay"].to_bool() && !cfg["snapshot"].to_bool(true);
+}
 
 namespace gui2
 {
@@ -68,11 +75,6 @@ namespace gui2
  *
  * -date & & control & o &
  *         Date the savegame was created. $
- *
- * preview_pane & & widget & m &
- *         Container widget or grid that contains the items for a preview. The
- *         visible status of this container depends on whether or not something
- *         is selected. $
  *
  * -minimap & & minimap & m &
  *         Minimap of the selected savegame. $
@@ -260,37 +262,45 @@ void tgame_load::display_savegame(twindow& window)
 			= find_widget<tlistbox>(&window, "savegame_list", false)
 					  .get_selected_row();
 
-	twidget& preview_pane
-			= find_widget<twidget>(&window, "preview_pane", false);
-
 	if(selected_row == -1) {
-		preview_pane.set_visible(twidget::tvisible::hidden);
-	} else {
-		preview_pane.set_visible(twidget::tvisible::visible);
+		return;
+	}
 
-		savegame::save_info& game = games_[selected_row];
-		filename_ = game.name();
+	savegame::save_info& game = games_[selected_row];
+	filename_ = game.name();
 
-		const config& summary = game.summary();
+	const config& summary = game.summary();
 
-		find_widget<timage>(&window, "imgLeader", false)
+	find_widget<timage>(&window, "imgLeader", false)
 				.set_label(summary["leader_image"]);
 
-		find_widget<tminimap>(&window, "minimap", false)
+	find_widget<tminimap>(&window, "minimap", false)
 				.set_map_data(summary["map_data"]);
 
-		find_widget<tlabel>(&window, "lblScenario", false)
+	find_widget<tlabel>(&window, "lblScenario", false)
 				.set_label(game.name());
 
-		std::stringstream str;
-		str << game.format_time_local();
-		evaluate_summary_string(str, summary);
+	std::stringstream str;
+	str << game.format_time_local();
+	evaluate_summary_string(str, summary);
 
-		find_widget<tlabel>(&window, "lblSummary", false).set_label(str.str());
+	// Always toggle show_replay on if the save is a replay
+	ttoggle_button& replay_toggle =
+			find_widget<ttoggle_button>(&window, "show_replay", false);
+	// cancel orders doesnt make sense on replay saves or start-of-scenario saves.
+	ttoggle_button& cancel_orders_toggle =
+			find_widget<ttoggle_button>(&window, "cancel_orders", false);
 
-		// TODO: Find a better way to change the label width
-		// window.invalidate_layout();
-	}
+	const bool is_replay = is_replay_save(summary);
+	const bool is_scenario_start = summary["turn"].empty();
+
+	replay_toggle.set_value(is_replay);
+	replay_toggle.set_active(!is_replay && !is_scenario_start);
+	cancel_orders_toggle.set_active(!is_replay && !is_scenario_start);
+	find_widget<tlabel>(&window, "lblSummary", false).set_label(str.str());
+
+	// TODO: Find a better way to change the label width
+	// window.invalidate_layout();
 }
 
 void tgame_load::evaluate_summary_string(std::stringstream& str,
@@ -353,8 +363,7 @@ void tgame_load::evaluate_summary_string(std::stringstream& str,
 
 		str << "\n";
 
-		if(cfg_summary["replay"].to_bool()
-		   && !cfg_summary["snapshot"].to_bool(true)) {
+		if(is_replay_save(cfg_summary)) {
 			str << _("Replay");
 		} else if(!cfg_summary["turn"].empty()) {
 			str << _("Turn") << " " << cfg_summary["turn"];

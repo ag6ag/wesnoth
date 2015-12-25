@@ -86,7 +86,7 @@ playsingle_controller::playsingle_controller(const config& level,
 {
 	hotkey_handler_.reset(new hotkey_handler(*this, saved_game_)); //upgrade hotkey handler to the sp (whiteboard enabled) version
 
-	
+
 	// game may need to start in linger mode
 	linger_ = this->is_regular_game_end();
 
@@ -268,7 +268,7 @@ LEVEL_RESULT playsingle_controller::play_scenario(const config& level)
 		pump().fire(is_victory ? "victory" : "defeat");
 		{ // Block for set_scontext_synced_base
 			set_scontext_synced_base sync;
-			pump().fire("scenario_end");
+			pump().fire("scenario end");
 		}
 		if(end_level.proceed_to_next_level) {
 			gamestate().board_.heal_all_survivors();

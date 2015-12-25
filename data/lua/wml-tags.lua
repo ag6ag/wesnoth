@@ -20,6 +20,7 @@ local helper = wesnoth.require "lua/helper.lua"
 local location_set = wesnoth.require "lua/location_set.lua"
 local utils = wesnoth.require "lua/wml-utils.lua"
 local wml_actions = wesnoth.wml_actions
+local T = helper.set_wml_tag_metatable {}
 
 function wml_actions.sync_variable(cfg)
 	local names = cfg.name or helper.wml_error "[sync_variable] missing required name= attribute."
@@ -246,22 +247,6 @@ function wml_actions.unit_worth(cfg)
 	wesnoth.set_variable("experience", math.floor(xp * 100))
 	wesnoth.set_variable("recall_cost", ut.recall_cost)
 	wesnoth.set_variable("unit_worth", math.floor(math.max(ut.cost * hp, best_adv * xp)))
-end
-
-function wml_actions.wml_action(cfg)
-	-- The new tag's name
-	local name = cfg.name or
-		helper.wml_error "[wml_action] missing required name= attribute."
-	local code = cfg.lua_function or
-		helper.wml_error "[wml_action] missing required lua_function= attribute."
-	local bytecode, message = load(code)
-	if not bytecode then
-		helper.wml_error("[wml_action] failed to compile Lua code: " .. message)
-	end
-	-- The lua function that is executed when the tag is called
-	local lua_function = bytecode() or
-		helper.wml_error "[wml_action] expects a Lua code returning a function."
-	wml_actions[name] = lua_function
 end
 
 function wml_actions.lua(cfg)
@@ -932,7 +917,7 @@ end
 function wml_actions.harm_unit(cfg)
 	local filter = helper.get_child(cfg, "filter") or helper.wml_error("[harm_unit] missing required [filter] tag")
 	-- we need to use shallow_literal field, to avoid raising an error if $this_unit (not yet assigned) is used
-	if not cfg.__shallow_literal.amount then helper.wml_error("[harm_unit] has missing required amount= attribute") end
+	if not helper.shallow_literal(cfg).amount then helper.wml_error("[harm_unit] has missing required amount= attribute") end
 	local variable = cfg.variable -- kept out of the way to avoid problems
 	local _ = wesnoth.textdomain "wesnoth"
 	-- #textdomain wesnoth
@@ -968,10 +953,15 @@ function wml_actions.harm_unit(cfg)
 			if animate then
 				if animate ~= "defender" and harmer and harmer.valid then
 					wesnoth.scroll_to_tile(harmer.x, harmer.y, true)
-					wesnoth.animate_unit({ flag = "attack", hits = true, { "filter", { id = harmer.id } },
-						{ "primary_attack", primary_attack },
-						{ "secondary_attack", secondary_attack }, with_bars = true,
-						{ "facing", { x = unit_to_harm.x, y = unit_to_harm.y } } })
+					wml_actions.animate_unit {
+						flag = "attack",
+						hits = true,
+						with_bars = true,
+						T.filter { id = harmer.id },
+						T.primary_attack ( primary_attack ),
+						T.secondary_attack ( secondary_attack ), 
+						T.facing { x = unit_to_harm.x, y = unit_to_harm.y },
+					}
 				end
 				wesnoth.scroll_to_tile(unit_to_harm.x, unit_to_harm.y, true)
 			end
@@ -1007,12 +997,13 @@ function wml_actions.harm_unit(cfg)
 				return damage
 			end
 
-			local damage = calculate_damage( amount,
-							 ( cfg.alignment or "neutral" ),
-							 wesnoth.get_time_of_day( { unit_to_harm.x, unit_to_harm.y, true } ).lawful_bonus,
-							 wesnoth.unit_resistance( unit_to_harm, cfg.damage_type or "dummy" ),
-							 resistance_multiplier
-						       )
+			local damage = calculate_damage(
+				amount,
+				cfg.alignment or "neutral",
+				wesnoth.get_time_of_day( { unit_to_harm.x, unit_to_harm.y, true } ).lawful_bonus,
+				wesnoth.unit_resistance( unit_to_harm, cfg.damage_type or "dummy" ),
+				resistance_multiplier
+			)
 
 			if unit_to_harm.hitpoints <= damage then
 				if kill == false then damage = unit_to_harm.hitpoints - 1
@@ -1058,14 +1049,24 @@ function wml_actions.harm_unit(cfg)
 
 			if animate and animate ~= "attacker" then
 				if harmer and harmer.valid then
-					wesnoth.animate_unit({ flag = "defend", hits = true, { "filter", { id = unit_to_harm.id } },
-						{ "primary_attack", primary_attack },
-						{ "secondary_attack", secondary_attack }, with_bars = true },
-						{ "facing", { x = harmer.x, y = harmer.y } })
+					wml_actions.animate_unit {
+						flag = "defend",
+						hits = true,
+						with_bars = true,
+						T.filter { id = unit_to_harm.id },
+						T.primary_attack ( primary_attack ),
+						T.secondary_attack ( secondary_attack ),
+						T.facing { x = harmer.x, y = harmer.y },
+					}
 				else
-					wesnoth.animate_unit({ flag = "defend", hits = true, { "filter", { id = unit_to_harm.id } },
-						{ "primary_attack", primary_attack },
-						{ "secondary_attack", secondary_attack }, with_bars = true })
+					wml_actions.animate_unit { 
+						flag = "defend",
+						hits = true,
+						with_bars = true,
+						T.filter { id = unit_to_harm.id },
+						T.primary_attack ( primary_attack ),
+						T.secondary_attack ( secondary_attack ),
+					}
 				end
 			end
 
@@ -1086,7 +1087,7 @@ function wml_actions.harm_unit(cfg)
 			end
 
 			if kill ~= false and unit_to_harm.hitpoints <= 0 then
-				wml_actions.kill({ id = unit_to_harm.id, animate = toboolean( animate ), fire_event = fire_event })
+				wml_actions.kill { id = unit_to_harm.id, animate = toboolean( animate ), fire_event = fire_event }
 			end
 
 			if animate then
@@ -1097,27 +1098,13 @@ function wml_actions.harm_unit(cfg)
 				wesnoth.set_variable(string.format("%s[%d]", variable, index - 1), { harm_amount = damage })
 			end
 
-			-- both may no longer be alive at this point, so double check
-			-- this blocks handles the harmed units advancing
-			if experience ~= false and harmer and unit_to_harm.valid and unit_to_harm.experience >= unit_to_harm.max_experience then
-				wml_actions.store_unit { { "filter", { id = unit_to_harm.id } }, variable = "Lua_store_unit", kill = true }
-				wml_actions.unstore_unit { variable = "Lua_store_unit",
-								find_vacant = false,
-								advance = true,
-								animate = toboolean( animate ),
-								fire_event = fire_event }
-				wesnoth.set_variable ( "Lua_store_unit", nil )
+			-- both units may no longer be alive at this point, so double check
+			if experience ~= false and unit_to_harm and unit_to_harm.valid then
+				unit_to_harm:advance(toboolean(animate), fire_event ~= false)
 			end
 
-			-- this block handles the harmer advancing
-			if experience ~= false and harmer and harmer.valid and harmer.experience >= harmer.max_experience then
-				wml_actions.store_unit { { "filter", { id = harmer.id } }, variable = "Lua_store_unit", kill = true }
-				wml_actions.unstore_unit { variable = "Lua_store_unit",
-								find_vacant = false,
-								advance = true,
-								animate = toboolean( animate ),
-								fire_event = fire_event }
-				wesnoth.set_variable ( "Lua_store_unit", nil )
+			if experience ~= false and harmer and harmer.valid then
+				harmer:advance(toboolean(animate), fire_event ~= false)
 			end
 		end
 
@@ -1164,23 +1151,23 @@ function wml_actions.store_side(cfg)
 	local writer = utils.vwriter.init(cfg, "side")
 	for t, side_number in helper.get_sides(cfg) do
 		local container = {
-				controller = t.controller,
-				recruit = table.concat(t.recruit, ","),
-				fog = t.fog,
-				shroud = t.shroud,
-				hidden = t.hidden,
-				income = t.total_income,
-				village_gold = t.village_gold,
-				village_support = t.village_support,
-				team_name = t.team_name,
-				user_team_name = t.user_team_name,
-				color = t.color,
-				gold = t.gold,
-				scroll_to_leader = t.scroll_to_leader,
-				flag = t.flag,
-				flag_icon = t.flag_icon,
-				side = side_number
-			}
+			controller = t.controller,
+			recruit = table.concat(t.recruit, ","),
+			fog = t.fog,
+			shroud = t.shroud,
+			hidden = t.hidden,
+			income = t.total_income,
+			village_gold = t.village_gold,
+			village_support = t.village_support,
+			team_name = t.team_name,
+			user_team_name = t.user_team_name,
+			color = t.color,
+			gold = t.gold,
+			scroll_to_leader = t.scroll_to_leader,
+			flag = t.flag,
+			flag_icon = t.flag_icon,
+			side = side_number
+		}
 		utils.vwriter.write(writer, container)
 	end
 end
@@ -1214,33 +1201,30 @@ function wml_actions.add_ai_behavior(cfg)
 
 	local path = "stage[" .. loop_id .. "].candidate_action[" .. id .. "]" -- bca: behavior candidate action
 
-	local conf = {
-		["action"] = "add",
-		["engine"] = "lua",
-		["path"] = path,
+	wesnoth.wml_actions.modify_ai {
+		action = "add",
+		engine = "lua",
+		path = path,
+		side = side,
 
-		{"candidate_action", {
-			["id"] = id,
-			["name"] = id,
-			["engine"] = "lua",
-			["sticky"] = sticky,
-			["unit_x"] = ux,
-			["unit_y"] = uy,
-			["evaluation"] = eval,
-			["execution"] = exec
-		}},
-
-		["side"] = side
+		T.candidate_action {
+			id = id,
+			name = id,
+			engine = "lua",
+			sticky = sticky,
+			unit_x = ux,
+			unit_y = uy,
+			evaluation = eval,
+			execution = exec
+		},
 	}
-	wesnoth.wml_actions.modify_ai(conf)
-	--wesnoth.message("Adding a behavior")
 end
 
 function wml_actions.find_path(cfg)
-	local filter_unit = (helper.get_child(cfg, "traveler")) or helper.wml_error("[find_path] missing required [traveler] tag")
+	local filter_unit = helper.get_child(cfg, "traveler") or helper.wml_error("[find_path] missing required [traveler] tag")
 	-- only the first unit matching
 	local unit = wesnoth.get_units(filter_unit)[1] or helper.wml_error("[find_path]'s filter didn't match any unit")
-	local filter_location = (helper.get_child(cfg, "destination")) or helper.wml_error( "[find_path] missing required [destination] tag" )
+	local filter_location = helper.get_child(cfg, "destination") or helper.wml_error( "[find_path] missing required [destination] tag" )
 	-- support for $this_unit
 	local this_unit = utils.start_var_scope("this_unit")
 
@@ -1475,9 +1459,9 @@ function wml_actions.endlevel(cfg)
 	local there_is_a_local_human_defeat = false
 	local bool_int = function(b)
 		if b == true then
-			return 0
-		elseif b == false then
 			return 1
+		elseif b == false then
+			return 0
 		else
 			return b
 		end
@@ -1647,6 +1631,7 @@ wesnoth.wml_actions.random_placement = function(cfg)
 	local dist_le = nil
 	
 	local parsed = helper.shallow_parsed(cfg)
+	-- TODO: In most cases this tag is used to place units, so maybe make include_borders=no the default for [filter_location]?
 	local filter = helper.get_child(parsed, "filter_location") or {}
 	local command = helper.get_child(parsed, "command") or helper.wml_error("[random_placement] missing required [command] subtag")
 	local distance = cfg.min_distance or 0
