@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2007 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2007 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org
 
    This program is free software; you can redistribute it and/or modify
@@ -279,7 +279,7 @@ void wait::join_game(bool observe)
 				side_num = nb_sides;
 				break;
 			}
-			if (sd["controller"] == "network" && sd["player_id"].empty())
+			if (sd["controller"] == "human" && sd["player_id"].empty())
 			{
 				if (!side_choice) { // found the first empty side
 					side_choice = &sd;
@@ -614,15 +614,6 @@ void wait::generate_menu()
 	}
 }
 
-bool wait::has_level_data() const
-{
-	if (first_scenario_) {
-		return level_.has_attribute("version") && get_scenario().has_child("side");
-	} else {
-		return level_.has_child("next_scenario");
-	}
-}
-
 bool wait::download_level_data()
 {
 	DBG_MP << "download_level_data()\n";
@@ -630,24 +621,37 @@ bool wait::download_level_data()
 		// Ask for the next scenario data.
 		network::send_data(config("load_next_scenario"), 0);
 	}
-
-	while (!has_level_data()) {
+	bool has_scenario_and_controllers = false;
+	while (!has_scenario_and_controllers) {
+		config revc;
 		network::connection data_res = dialogs::network_receive_dialog(
-			disp(), _("Getting game data..."), level_);
+			disp(), _("Getting game data..."), revc);
 
 		if (!data_res) {
 			DBG_MP << "download_level_data bad results\n";
 			return false;
 		}
-		check_response(data_res, level_);
-		if (level_.child("leave_game")) {
+		check_response(data_res, revc);
+		if (revc.child("leave_game")) {
 			return false;
 		}
-	}
-
-	if (!first_scenario_) {
-		config cfg = level_.child("next_scenario");
-		level_ = cfg;
+		else if(config& next_scenario = revc.child("next_scenario")) {
+			level_.swap(next_scenario);
+		}
+		else if(revc.has_attribute("version")) {
+			level_.swap(revc);
+			has_scenario_and_controllers = true;
+		}
+		else if(config& controllers = revc.child("controllers")) {
+			int index = 0;
+			BOOST_FOREACH(const config& controller, controllers.child_range("controller")) {
+				if(config& side = get_scenario().child("side", index)) {
+					side["is_local"] = controller["is_local"];
+				}
+				++index;
+			}
+			has_scenario_and_controllers = true;
+		}
 	}
 
 	DBG_MP << "download_level_data() success.\n";

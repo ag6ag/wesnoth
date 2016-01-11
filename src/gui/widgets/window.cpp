@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2007 - 2015 by Mark de Wever <koraq@xs4all.nl>
+   Copyright (C) 2007 - 2016 by Mark de Wever <koraq@xs4all.nl>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -872,64 +872,26 @@ void twindow::draw()
 		SDL_Rect rect = get_rectangle();
 		sdl_blit(restorer_, 0, frame_buffer, &rect);
 
-/**
- * @todo Remove the if an always use the true branch.
- *
- * When removing that code the draw functions with only a frame_buffer
- * as parameter should also be removed since they will be unused from
- * that moment.
- */
-#if 0
-		if(new_widgets)
-#else
-		if(true)
-#endif
-		{
-			// Background.
-			for(std::vector<twidget*>::iterator itor = item.begin();
-				itor != item.end();
-				++itor) {
+		// Background.
+		for(std::vector<twidget*>::iterator itor = item.begin();
+			itor != item.end();
+			++itor) {
 
-				(**itor).draw_background(frame_buffer, 0, 0);
-			}
-
-			// Children.
-			if(!item.empty()) {
-				item.back()->draw_children(frame_buffer, 0, 0);
-			}
-
-			// Foreground.
-			for(std::vector<twidget*>::reverse_iterator ritor = item.rbegin();
-				ritor != item.rend();
-				++ritor) {
-
-				(**ritor).draw_foreground(frame_buffer, 0, 0);
-				(**ritor).set_is_dirty(false);
-			}
+			(**itor).draw_background(frame_buffer, 0, 0);
 		}
-		else
-		{
-			// Background.
-			for(std::vector<twidget*>::iterator itor = item.begin();
-				itor != item.end();
-				++itor) {
 
-				(**itor).draw_background(frame_buffer);
-			}
+		// Children.
+		if(!item.empty()) {
+			item.back()->draw_children(frame_buffer, 0, 0);
+		}
 
-			// Children.
-			if(!item.empty()) {
-				item.back()->draw_children(frame_buffer);
-			}
+		// Foreground.
+		for(std::vector<twidget*>::reverse_iterator ritor = item.rbegin();
+			ritor != item.rend();
+			++ritor) {
 
-			// Foreground.
-			for(std::vector<twidget*>::reverse_iterator ritor = item.rbegin();
-				ritor != item.rend();
-				++ritor) {
-
-				(**ritor).draw_foreground(frame_buffer);
-				(**ritor).set_is_dirty(false);
-			}
+			(**ritor).draw_foreground(frame_buffer, 0, 0);
+			(**ritor).set_is_dirty(false);
 		}
 
 		update_rect(dirty_rect);
@@ -1461,13 +1423,9 @@ void twindow::signal_handler_sdl_video_resize(const event::tevent event,
 		handled = true;
 		return;
 	}
+
+	video_.set_resolution(new_size.x, new_size.y);
 #endif
-
-	if(!preferences::set_resolution(video_, new_size.x, new_size.y)) {
-
-		LOG_GUI_E << LOG_HEADER << " resize aborted, resize failed.\n";
-		return;
-	}
 
 	settings::gamemap_width += new_size.x - settings::screen_width;
 	settings::gamemap_height += new_size.y - settings::screen_height;

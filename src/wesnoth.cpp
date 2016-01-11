@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -63,7 +63,13 @@
 
 #ifdef _WIN32
 #include "log_windows.hpp"
+
+#include <float.h>
 #endif // _WIN32
+
+#ifndef _MSC_VER
+#include <fenv.h>
+#endif // _MSC_VER
 
 #include <SDL.h>                        // for SDL_Init, SDL_INIT_TIMER
 #include <boost/foreach.hpp>            // for auto_any_base, etc
@@ -514,7 +520,7 @@ static void handle_lua_script_args(game_launcher * game, commandline_options & /
 	}
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 static void check_fpu()
 {
 	uint32_t f_control;
@@ -523,7 +529,7 @@ static void check_fpu()
 		uint32_t rounding_mode = f_control & _MCW_RC;
 		uint32_t precision_mode = f_control & _MCW_PC;
 		if(rounding_mode != _RC_NEAR) {
-			std::cerr << "Floating point rounding mode is currently '" << 
+			std::cerr << "Floating point rounding mode is currently '" <<
 				((rounding_mode == _RC_CHOP) ? "chop" :
 				(rounding_mode == _RC_UP) ? "up" :
 				(rounding_mode == _RC_DOWN) ? "down" :
@@ -534,7 +540,7 @@ static void check_fpu()
 			}
 		}
 		if(precision_mode != _PC_53) {
-			std::cerr << "Floating point precision mode is currently '" << 
+			std::cerr << "Floating point precision mode is currently '" <<
 				((precision_mode == _PC_53) ? "double" :
 				(precision_mode == _PC_24) ? "single" :
 				(precision_mode == _PC_64 ) ? "double extended" :
@@ -546,6 +552,21 @@ static void check_fpu()
 	}
 	else {
 		std::cerr << "_controlfp_s failed.\n";
+	}
+}
+#else
+static void check_fpu()
+{
+	switch (fegetround()) {
+	case FE_TONEAREST: break;
+	case FE_DOWNWARD: std::cerr << "Floating point precision mode is currently 'downward'"; goto reset_fpu;
+	case FE_TOWARDZERO: std::cerr << "Floating point precision mode is currently 'toward-zero'"; goto reset_fpu;
+	case FE_UPWARD: std::cerr << "Floating point precision mode is currently 'upward'"; goto reset_fpu;
+	default: std::cerr << "Floating point precision mode is currently 'unknown'"; goto reset_fpu;
+	reset_fpu:
+		std::cerr << "setting to 'nearest'";
+		fesetround(FE_TONEAREST);
+		break;
 	}
 }
 #endif
@@ -608,9 +629,7 @@ static int do_gameloop(const std::vector<std::string>& args)
 		}
 	}
 
-#if defined(_WIN32)
 	check_fpu();
-#endif
 	const cursor::manager cursor_manager;
 	cursor::set(cursor::WAIT);
 

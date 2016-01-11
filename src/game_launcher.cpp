@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,6 @@
 #include "network.hpp"
 #include "game_initialization/playcampaign.hpp"             // for play_game, etc
 #include "preferences.hpp"              // for disable_preferences_save, etc
-#include "preferences_display.hpp"      // for detect_video_settings, etc
 #include "savegame.hpp"                 // for clean_saves, etc
 #include "scripting/application_lua_kernel.hpp"
 #include "sdl/utils.hpp"                // for surface
@@ -188,7 +187,7 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts, const char
 	if (cmdline_opts_.fps)
 		preferences::set_show_fps(true);
 	if (cmdline_opts_.fullscreen)
-		preferences::set_fullscreen(true);
+		video_.set_fullscreen(true);
 	if (cmdline_opts_.load)
 		game::load_game_exception::game = *cmdline_opts_.load;
 	if (cmdline_opts_.max_fps) {
@@ -246,8 +245,7 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts, const char
 		const int xres = cmdline_opts_.resolution->get<0>();
 		const int yres = cmdline_opts_.resolution->get<1>();
 		if(xres > 0 && yres > 0) {
-			const std::pair<int,int> resolution(xres,yres);
-			preferences::set_resolution(resolution);
+			video_.set_resolution(xres, yres);
 		}
 	}
 	if (cmdline_opts_.screenshot) {
@@ -291,7 +289,7 @@ game_launcher::game_launcher(const commandline_options& cmdline_opts, const char
 
 	}
 	if (cmdline_opts_.windowed)
-		preferences::set_fullscreen(false);
+		video_.set_fullscreen(false);
 	if (cmdline_opts_.with_replay)
 		game::load_game_exception::show_replay = true;
 
@@ -377,6 +375,35 @@ bool game_launcher::init_language()
 	return true;
 }
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+bool game_launcher::init_video()
+{
+	// Handle special commandline launch flags
+	if(cmdline_opts_.nogui || cmdline_opts_.headless_unit_test) {
+		if( !(cmdline_opts_.multiplayer || cmdline_opts_.screenshot || cmdline_opts_.plugin_file || cmdline_opts_.headless_unit_test) ) {
+			std::cerr << "--nogui flag is only valid with --multiplayer or --screenshot or --plugin flags\n";
+			return false;
+		}
+		video_.make_fake();
+		game_config::no_delay = true;
+		return true;
+	}
+
+	// Initialize a new window
+	video_.init_window();
+
+	// Set window title and icon
+	CVideo::set_window_title(game_config::get_default_title_string());
+
+#if !(defined(__APPLE__))
+	surface icon(image::get_image("icons/icon-game.png", image::UNSCALED));
+	if(icon != NULL) {
+		CVideo::set_window_icon(icon);
+	}
+#endif
+	return true;
+}
+#else
 bool game_launcher::init_video()
 {
 	if(cmdline_opts_.nogui || cmdline_opts_.headless_unit_test) {
@@ -389,19 +416,13 @@ bool game_launcher::init_video()
 		return true;
 	}
 
-	std::string wm_title_string = _("The Battle for Wesnoth");
-	wm_title_string += " - " + game_config::revision;
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_WM_SetCaption(wm_title_string.c_str(), NULL);
-#endif
+	SDL_WM_SetCaption(game_config::get_default_title_string().c_str(), NULL);
 
 #if !(defined(__APPLE__))
 	surface icon(image::get_image("icons/icon-game.png", image::UNSCALED));
 	if(icon != NULL) {
 		///must be called after SDL_Init() and before setting video mode
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
 		SDL_WM_SetIcon(icon,NULL);
-#endif
 	}
 #endif
 
@@ -409,17 +430,15 @@ bool game_launcher::init_video()
 	int bpp = 0;
 	int video_flags = 0;
 
-	bool found_matching = preferences::detect_video_settings(video_, resolution, bpp, video_flags);
+	bool found_matching = video_.detect_video_settings(resolution, bpp, video_flags);
 
-	if (cmdline_opts_.bpp) {
-		bpp = *cmdline_opts_.bpp;
-	} else if (cmdline_opts_.screenshot) {
-		bpp = 32;
+	if (cmdline_opts_.screenshot) {
+		bpp = CVideo::DefaultBpp;
 	}
 
-	if(!found_matching && (video_flags & FULL_SCREEN)) {
-		video_flags ^= FULL_SCREEN;
-		found_matching = preferences::detect_video_settings(video_, resolution, bpp, video_flags);
+	if(!found_matching && (video_flags & SDL_FULLSCREEN)) {
+		video_flags ^= SDL_FULLSCREEN;
+		found_matching = video_.detect_video_settings(resolution, bpp, video_flags);
 		if (found_matching) {
 			std::cerr << "Failed to set " << resolution.first << 'x' << resolution.second << 'x' << bpp << " in fullscreen mode. Using windowed instead.\n";
 		}
@@ -441,16 +460,9 @@ bool game_launcher::init_video()
 		          << resolution.second << "x" << bpp << " is not supported\n";
 		return false;
 	}
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	CVideo::set_window_title(wm_title_string);
-#if !(defined(__APPLE__))
-	if(icon != NULL) {
-		CVideo::set_window_icon(icon);
-	}
-#endif
-#endif
 	return true;
 }
+#endif
 
 bool game_launcher::init_lua_script()
 {
@@ -744,7 +756,7 @@ bool game_launcher::load_game()
 		}
 		return false;
 	} catch(twml_exception& e) {
-		e.show(disp());
+		e.show(disp().video());
 		return false;
 	} catch(filesystem::io_exception& e) {
 		if(e.message.empty()) {
@@ -1011,7 +1023,7 @@ bool game_launcher::play_multiplayer()
 	} catch (game::load_game_exception &) {
 		//this will make it so next time through the title screen loop, this game is loaded
 	} catch(twml_exception& e) {
-		e.show(disp());
+		e.show(disp().video());
 	} catch (game::error & e) {
 		std::cerr << "caught game::error...\n";
 		gui2::show_error_message(disp().video(), _("Error: ") + e.message);
@@ -1051,12 +1063,10 @@ bool game_launcher::change_language()
 	if (dlg.get_retval() != gui2::twindow::OK) return false;
 
 	if (!(cmdline_opts_.nogui || cmdline_opts_.headless_unit_test)) {
-		std::string wm_title_string = _("The Battle for Wesnoth");
-		wm_title_string += " - " + game_config::revision;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		CVideo::set_window_title(wm_title_string);
+		CVideo::set_window_title(game_config::get_default_title_string());
 #else
-		SDL_WM_SetCaption(wm_title_string.c_str(), NULL);
+		SDL_WM_SetCaption(game_config::get_default_title_string().c_str(), NULL);
 #endif
 	}
 
@@ -1108,7 +1118,7 @@ void game_launcher::launch_game(RELOAD_GAME_DATA reload)
 	} catch (game::load_game_exception &) {
 		//this will make it so next time through the title screen loop, this game is loaded
 	} catch(twml_exception& e) {
-		e.show(disp());
+		e.show(disp().video());
 	}
 }
 
@@ -1122,7 +1132,7 @@ void game_launcher::play_replay()
 	} catch (game::load_game_exception &) {
 		//this will make it so next time through the title screen loop, this game is loaded
 	} catch(twml_exception& e) {
-		e.show(disp());
+		e.show(disp().video());
 	}
 }
 

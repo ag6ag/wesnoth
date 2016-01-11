@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2013 - 2015 by Andrius Silinskas <silinskas.andrius@gmail.com>
+   Copyright (C) 2013 - 2016 by Andrius Silinskas <silinskas.andrius@gmail.com>
    Part of thie Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -125,8 +125,8 @@ static ng::side_engine* create_side_engine(const config& defaults,
 
 /* Tests */
 
-BOOST_GLOBAL_FIXTURE( mp_connect_fixture )
-BOOST_AUTO_TEST_SUITE( mp_connect )
+BOOST_GLOBAL_FIXTURE( mp_connect_fixture );
+BOOST_AUTO_TEST_SUITE( mp_connect );
 
 
 BOOST_AUTO_TEST_CASE( flg_map_settings )

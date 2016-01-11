@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2006 - 2015 by Joerg Hinrichs <joerg.hinrichs@alice-dsl.de>
+   Copyright (C) 2006 - 2016 by Joerg Hinrichs <joerg.hinrichs@alice-dsl.de>
    wesnoth playturn Copyright (C) 2003 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
@@ -2694,6 +2694,9 @@ void console_handler::do_controller()
 	if (!menu_handler_.teams()[side_num - 1].is_proxy_human()) {
 		report += " (" + menu_handler_.teams()[side_num - 1].proxy_controller().to_string() + ")";
 	}
+	if (menu_handler_.teams()[side_num - 1].is_network()) {
+		report += " (networked)";
+	}
 
 	print(get_cmd(), report);
 }
@@ -3146,15 +3149,6 @@ void menu_handler::ai_formula()
 void menu_handler::clear_messages()
 {
 	gui_->get_chat_manager().clear_chat_messages();	// also clear debug-messages and WML-error-messages
-}
-
-void menu_handler::change_controller(const std::string& side, const std::string& controller)
-{
-	config cfg;
-	config& change = cfg.add_child("change_controller");
-	change["side"] = side;
-	change["controller"] = controller;
-	network::send_data(cfg, 0);
 }
 
 void menu_handler::change_side_controller(const std::string& side, const std::string& player)

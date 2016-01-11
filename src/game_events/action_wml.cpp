@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -645,7 +645,7 @@ WML_HANDLER_FUNCTION(replace_map, /*event_info*/, cfg)
 		lg::wml_error << "replace_map: Unable to load map " << log_map_name << std::endl;
 		return;
 	} catch(twml_exception& e) {
-		e.show(*resources::screen);
+		e.show(resources::screen->video());
 		return;
 	}
 
@@ -1228,7 +1228,7 @@ WML_HANDLER_FUNCTION(terrain_mask, /*event_info*/, cfg)
 		ERR_NG << "terrain mask is in the incorrect format, and couldn't be applied" << std::endl;
 		return;
 	} catch(twml_exception& e) {
-		e.show(*resources::screen);
+		e.show(resources::screen->video());
 		return;
 	}
 	resources::gameboard->overlay_map(mask_map, cfg.get_parsed_config(), loc, border);

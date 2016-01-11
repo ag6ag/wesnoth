@@ -1477,6 +1477,7 @@ if(ENABLE_TESTS)
 		tests/test_formula_function.cpp
 		tests/test_image_modifications.cpp
 		tests/test_lexical_cast.cpp
+		tests/test_lua.cpp
 		tests/test_map_location.cpp
 		tests/test_make_enum.cpp
 		tests/test_network_worker.cpp

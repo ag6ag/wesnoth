@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -45,6 +45,7 @@
 #include "unit_animation_component.hpp"
 #include "unit_drawer.hpp"
 #include "whiteboard/manager.hpp"
+#include "show_dialog.hpp"
 
 #include "SDL_image.h"
 
@@ -1654,7 +1655,6 @@ static void draw_background(surface screen, const SDL_Rect& area, const std::str
 }
 #endif
 
-//TODO: convert this to use sdl::ttexture
 void display::draw_text_in_hex(const map_location& loc,
 		const tdrawing_layer layer, const std::string& text,
 		size_t font_size, SDL_Color color, double x_in_hex, double y_in_hex)
@@ -2692,8 +2692,9 @@ void display::redraw_everything()
 	}
 
 	panelsDrawn_ = false;
-
-	labels().recalculate_labels();
+	if (!gui::in_dialog()) {
+		labels().recalculate_labels();
+	}
 
 	redraw_background_ = true;
 

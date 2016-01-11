@@ -1,6 +1,6 @@
 /* vim:set encoding=utf-8: */
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -50,6 +50,11 @@
 
 #ifdef CAIRO_HAS_FT_FONT
 #include <fontconfig/fontconfig.h>
+#endif
+
+#if !defined(CAIRO_HAS_FT_FONT) && !defined(CAIRO_HAS_WIN32_FONT)
+// Is there soemthing like #warning which just gives awarnign insteads of an error?
+#error unable to find font loading tools.
 #endif
 
 static lg::log_domain log_font("font");

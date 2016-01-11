@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2009 - 2015 by Mark de Wever <koraq@xs4all.nl>
+   Copyright (C) 2009 - 2016 by Mark de Wever <koraq@xs4all.nl>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -62,6 +62,10 @@ void show_transient_message(CVideo& video,
 {
 	ttransient_message dlg(
 			title, title_use_markup, message, message_use_markup, image);
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	dlg.set_restore(false);
+#endif
 
 	dlg.show(video);
 }

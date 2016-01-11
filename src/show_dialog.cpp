@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -111,7 +111,8 @@ dialog_frame::dialog_frame(CVideo &video, const std::string& title,
 	top_right_(image::get_image("dialogs/" + dialog_style_.panel + "-border-topright.png")),
 	bot_right_(image::get_image("dialogs/" + dialog_style_.panel + "-border-botright.png")),
 	bg_(image::get_image("dialogs/" + dialog_style_.panel + "-background.png")),
-	have_border_(top_ != NULL && bot_ != NULL && left_ != NULL && right_ != NULL)
+	have_border_(top_ != NULL && bot_ != NULL && left_ != NULL && right_ != NULL),
+	dirty_(true)
 #endif
 {
 }
@@ -142,6 +143,20 @@ int dialog_frame::top_padding() const {
 		padding += font::get_max_height(font::SIZE_LARGE) + 2*dialog_frame::title_border_h;
 	}
 	return padding;
+}
+
+void dialog_frame::set_dirty(bool dirty) {
+	dirty_ = dirty;
+}
+
+void dialog_frame::handle_event(const SDL_Event& event) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	if (event.type == SDL_WINDOWEVENT) {
+		dirty_ = true;
+	}
+#else
+	UNUSED(event);
+#endif
 }
 
 int dialog_frame::bottom_padding() const {
@@ -376,6 +391,9 @@ SDL_Rect dialog_frame::draw_title(CVideo* video)
 
 void dialog_frame::draw()
 {
+	if (!dirty_)
+		return;
+
 	//draw background
 	draw_background();
 
@@ -402,6 +420,8 @@ void dialog_frame::draw()
 	if(help_button_ != NULL) {
 		help_button_->set_location(dim_.interior.x+ButtonHPadding, buttons_area.y);
 	}
+
+	dirty_ = false;
 }
 
 } //end namespace gui

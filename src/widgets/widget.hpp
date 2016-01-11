@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -89,7 +89,7 @@ protected:
 	const SDL_Rect* clip_rect() const;
 	virtual sdl_handler_vector member_handlers() { return sdl_handler::handler_members(); }
 
-	virtual void handle_event(SDL_Event const &/*event*/) {}
+	virtual void handle_event(SDL_Event const &event);
 	bool focus_;		// Should user input be ignored?
 
 	bool mouse_locked() const;

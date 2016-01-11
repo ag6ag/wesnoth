@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -447,6 +447,7 @@ bool textbox::requires_event_focus(const SDL_Event* event) const
 
 void textbox::handle_event(const SDL_Event& event)
 {
+	gui::widget::handle_event(event);
 	handle_event(event, false);
 }
 

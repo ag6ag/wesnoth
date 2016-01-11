@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2009 - 2015 by Ignacio R. Morelle <shadowm2006@gmail.com>
+   Copyright (C) 2009 - 2016 by Ignacio R. Morelle <shadowm2006@gmail.com>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -357,7 +357,7 @@ void tunit_create::list_item_clicked(twindow& window)
 	u_name.set_use_markup(true);
 
 	std::stringstream l_str;
-	l_str << "<span size='x-large'>" << "L " << u->level() << "</span>";
+	l_str << "<b>" << "Lvl " << u->level() << "</b>";
 
 	tlabel& l_label = find_widget<tlabel>(&window, "type_level", false);
 

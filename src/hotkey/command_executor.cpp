@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 #include "gettext.hpp"
 #include "log.hpp"
 #include "preferences.hpp"
-#include "preferences_display.hpp"
 #include "game_end_exceptions.hpp"
 
 #include <cassert>
@@ -579,7 +578,7 @@ void execute_command(display& disp, const hotkey_command& command, command_execu
 			disp.set_default_zoom();
 			break;
 		case HOTKEY_FULLSCREEN:
-			preferences::set_fullscreen(!preferences::fullscreen());
+			disp.video().set_fullscreen(!preferences::fullscreen());
 			break;
 		case HOTKEY_MAP_SCREENSHOT:
 			if (!disp.in_game() && !disp.in_editor()) {

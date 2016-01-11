@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2007 - 2015 by Mark de Wever <koraq@xs4all.nl>
+   Copyright (C) 2007 - 2016 by Mark de Wever <koraq@xs4all.nl>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -55,7 +55,7 @@ void wml_exception(
 	throw twml_exception(message, sstr.str());
 }
 
-void twml_exception::show(display &disp)
+void twml_exception::show(CVideo &video)
 {
 	std::ostringstream sstr;
 
@@ -66,7 +66,7 @@ void twml_exception::show(display &disp)
 		<< _("When reporting the bug please include the following error message :")
 		<< "\n" << dev_message;
 
-	gui2::show_error_message(disp.video(), sstr.str());
+	gui2::show_error_message(video, sstr.str());
 }
 
 std::string missing_mandatory_wml_key(

@@ -1,6 +1,6 @@
 /*
 
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -340,6 +340,16 @@ void widget::process_tooltip_string(int mousex, int mousey)
 		if (!tooltip_text_.empty())
 			tooltips::add_tooltip(rect_, tooltip_text_ );
 	}
+}
+
+void widget::handle_event(SDL_Event const &event) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	if (event.type == SDL_WINDOWEVENT) {
+		set_dirty();
+	}
+#else
+	UNUSED(event);
+#endif
 }
 
 

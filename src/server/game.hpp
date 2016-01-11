@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "../mt_rng.hpp"
+#include "../make_enum.hpp"
 
 #include <boost/ptr_container/ptr_vector.hpp>
 //class player;
@@ -37,6 +38,13 @@ typedef std::vector<network::connection> side_vector;
 class game
 {
 public:
+	MAKE_ENUM(CONTROLLER,
+		(HUMAN, "human")
+		(AI, "ai")
+		/* NULL is alreaddy the name of a standart c++ macro */
+		(EMPTY, "null")
+	)
+
 	game(player_map& players, const network::connection host=0,
 			const std::string& name="", bool save_replays=false,
 			const std::string& replay_save_path="");
@@ -170,8 +178,6 @@ public:
 
 	/** Handles incoming [whiteboard] data. */
 	void process_whiteboard(simple_wml::document& data, const player_map::const_iterator user);
-	/** Handles incoming [change_controller_wml] data. */
-	void process_change_controller_wml(simple_wml::document& data, const player_map::const_iterator user);
 	/** Handles incoming [change_turns_wml] data. */
 	void process_change_turns_wml(simple_wml::document& data, const player_map::const_iterator user);
 
@@ -230,8 +236,6 @@ public:
 
 	void set_termination_reason(const std::string& reason);
 
-	void require_random(const simple_wml::document &data, const player_map::iterator user);
-
 	void handle_choice(const simple_wml::node& data, const player_map::iterator user);
 
 	void handle_random_choice(const simple_wml::node& data);
@@ -276,8 +280,7 @@ private:
 	void change_controller(const size_t side_num,
 			const network::connection sock,
 			const std::string& player_name,
-			const bool player_left = true,
-			const std::string& controller = "");
+			const bool player_left = true);
 	void transfer_ai_sides(const network::connection player);
 	void send_leave_game(network::connection user) const;
 	/**
@@ -365,13 +368,7 @@ private:
 	/** A vector of side owners. */
 	side_vector sides_;
 
-	/**
-	 * A vector of controller strings indicating the type.
-	 * "human"   - a side controlled by a human
-	 * "ai"      - a side controlled by an AI
-	 * "null"    - an empty side
-	 */
-	std::vector<std::string> side_controllers_;
+	std::vector<CONTROLLER> side_controllers_;
 
 	/** Number of sides in the current scenario. */
 	int nsides_;

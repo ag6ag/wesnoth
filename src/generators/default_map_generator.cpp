@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -287,6 +287,7 @@ void default_map_generator::user_config(display& disp)
 		width_slider.set_min(min_width+(players_slider.value()-2)*extra_size_per_player);
 		height_slider.set_min(min_width+(players_slider.value()-2)*extra_size_per_player);
 
+		f.draw();
 		events::raise_process_event();
 		events::raise_draw_event();
 

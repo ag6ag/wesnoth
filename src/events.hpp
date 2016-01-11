@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2003 - 2015 by David White <dave@whitevine.net>
+   Copyright (C) 2003 - 2016 by David White <dave@whitevine.net>
    Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
    This program is free software; you can redistribute it and/or modify
@@ -55,6 +55,9 @@ public:
 	virtual void join(); /*joins the current event context*/
 	virtual void leave(); /*leave the event context*/
 
+	virtual void join_global(); /*join the global event context*/
+	virtual void leave_global(); /*leave the global event context*/
+
 protected:
 	sdl_handler(const bool auto_join=true);
 	virtual ~sdl_handler();
@@ -68,6 +71,7 @@ private:
 	int unicode_;
 #endif
 	bool has_joined_;
+	bool has_joined_global_;
 };
 
 void focus_handler(const sdl_handler* ptr);
