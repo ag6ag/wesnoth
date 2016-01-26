@@ -231,7 +231,7 @@ display::display(const display_context * dc, CVideo& video, boost::weak_ptr<wb::
 #endif
 {
 	//The following assertion fails when starting a campaign
-	//assert(singleton_ == NULL);
+	assert(singleton_ == NULL);
 	singleton_ = this;
 
 	resources::fake_units = fake_unit_man_.get();
@@ -240,7 +240,7 @@ display::display(const display_context * dc, CVideo& video, boost::weak_ptr<wb::
 
 	read(level.child_or_empty("display"));
 
-	if(non_interactive()
+	if(video.non_interactive()
 		&& (get_video_surface() != NULL
 		&& video.faked())) {
 		screen_.lock_updates(true);
@@ -1884,12 +1884,6 @@ void display::draw_wrap(bool update, bool force)
 		// we can also get the opposite effect.
 		nextDraw_ = std::max<int>(nextDraw_, SDL_GetTicks());
 	}
-}
-
-void display::delay(unsigned int milliseconds) const
-{
-	if (!game_config::no_delay)
-		SDL_Delay(milliseconds);
 }
 
 const theme::action* display::action_pressed()

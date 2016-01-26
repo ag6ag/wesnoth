@@ -79,7 +79,7 @@ dialog_manager::~dialog_manager()
 	SDL_PushEvent(&pb_event);
 }
 
-dialog_frame::dialog_frame(CVideo &video, const std::string& title,
+dialog_frame::dialog_frame(CVideo& video, const std::string& title,
 		const style& style, bool auto_restore,
 		std::vector<button*>* buttons, button* help_button) :
 	title_(title),
@@ -424,39 +424,7 @@ void dialog_frame::draw()
 	dirty_ = false;
 }
 
-} //end namespace gui
-
-namespace {
-
-struct help_handler : public hotkey::command_executor
-{
-	help_handler(display& disp, const std::string& topic) : disp_(disp), topic_(topic)
-	{}
-
-private:
-	void show_help()
-	{
-		if(topic_.empty() == false) {
-			help::show_help(disp_,topic_);
-		}
-	}
-
-	bool can_execute_command(const hotkey::hotkey_command& cmd, int /*index*/) const
-	{
-		hotkey::HOTKEY_COMMAND command = cmd.id;
-		return (topic_.empty() == false && command == hotkey::HOTKEY_HELP) || command == hotkey::HOTKEY_SCREENSHOT;
-	}
-
-	display& disp_;
-	std::string topic_;
-};
-
-}
-
-namespace gui
-{
-
-int show_dialog(display& screen, surface image,
+int show_dialog(CVideo& video, surface image,
 				const std::string& caption, const std::string& message,
 				DIALOG_TYPE type,
 				const std::vector<std::string>* menu_items,
@@ -475,16 +443,15 @@ int show_dialog(display& screen, surface image,
 	std::string title;
 	if (image.null()) title = caption;
 	const dialog::style& style = (dialog_style)? *dialog_style : dialog::default_style;
-	CVideo &disp = screen.video();
 
-	gui::dialog d(screen, title, message, type, style);
+	gui::dialog d(video, title, message, type, style);
 
 	//add the components
 	if(!image.null()) {
 		d.set_image(image, caption);
 	}
 	if(menu_items) {
-		d.set_menu( new gui::menu(disp,*menu_items,type == MESSAGE,-1,dialog::max_menu_width,sorter,menu_style,false));
+		d.set_menu( new gui::menu(video,*menu_items,type == MESSAGE,-1,dialog::max_menu_width,sorter,menu_style,false));
 	}
 	if(preview_panes) {
 		for(unsigned int i=0; i < preview_panes->size(); ++i) {

@@ -45,7 +45,7 @@ ttree_view_node::ttree_view_node(
 	, grid_()
 	, children_()
 	, node_definitions_(node_definitions)
-	, icon_(NULL)
+	, toggle_(NULL)
 	, label_(NULL)
 {
 	grid_.set_parent(this);
@@ -57,19 +57,23 @@ ttree_view_node::ttree_view_node(
 				node_definition.builder->build(&grid_);
 				init_grid(&grid_, data);
 
-				icon_ = find_widget<ttoggle_button>(
-						&grid_, "tree_view_node_icon", false, false);
+				twidget* toggle_widget = grid_.find("tree_view_node_icon", false);
+				toggle_ = dynamic_cast<tselectable_*>(toggle_widget);
 
-				if(icon_) {
-					icon_->set_visible(twidget::tvisible::hidden);
-					icon_->connect_signal<event::LEFT_BUTTON_CLICK>(boost::bind(
+				if(toggle_) {
+					toggle_widget->set_visible(twidget::tvisible::hidden);
+					toggle_widget->connect_signal<event::LEFT_BUTTON_CLICK>(boost::bind(
 							&ttree_view_node::signal_handler_left_button_click,
 							this,
 							_2));
+					toggle_widget->connect_signal<event::LEFT_BUTTON_CLICK>(boost::bind(
+							&ttree_view_node::signal_handler_left_button_click,
+							this,
+							_2), event::tdispatcher::back_post_child);
 				}
 
-				if(parent_node_ && parent_node_->icon_) {
-					parent_node_->icon_->set_visible(
+				if(parent_node_ && parent_node_->toggle_) {
+					dynamic_cast<twidget&>(*parent_node_->toggle_).set_visible(
 							twidget::tvisible::visible);
 				}
 
@@ -157,7 +161,7 @@ ttree_view_node& ttree_view_node::add_child(
 	assert(height_modification > 0);
 
 	// Request new size.
-	tree_view().resize_content(width_modification, height_modification);
+	tree_view().resize_content(width_modification, height_modification, -1, itor->calculate_ypos());
 
 	return *itor;
 }
@@ -204,7 +208,7 @@ const ttree_view& ttree_view_node::tree_view() const
 
 bool ttree_view_node::is_folded() const
 {
-	return icon_ && icon_->get_value();
+	return toggle_ && !toggle_->get_value();
 }
 #if 0
 void ttree_view_node::fold(const bool /*recursive*/)
@@ -238,7 +242,7 @@ void ttree_view_node::clear()
 		return;
 	}
 
-	tree_view().resize_content(0, -height_reduction);
+	tree_view().resize_content(0, -height_reduction,  -1, calculate_ypos());
 }
 
 struct ttree_view_node_implementation
@@ -338,7 +342,7 @@ bool ttree_view_node::disable_click_dismiss() const
 
 tpoint ttree_view_node::get_current_size(bool assume_visible) const
 {
-	if(parent_node_ && parent_node_->is_folded() && !assume_visible) {
+	if(!assume_visible && parent_node_ && parent_node_->is_folded()) {
 		return tpoint(0, 0);
 	}
 
@@ -369,7 +373,7 @@ tpoint ttree_view_node::get_current_size(bool assume_visible) const
 
 tpoint ttree_view_node::get_folded_size() const
 {
-	tpoint size = grid_.get_size();
+	tpoint size = grid_.get_best_size();
 	if(get_indention_level() > 1) {
 		size.x += (get_indention_level() - 1)
 				  * tree_view().indention_step_size_;
@@ -561,7 +565,7 @@ ttree_view_node::signal_handler_left_button_click(const event::tevent event)
 		const int height_modification = new_size.y - current_size.y;
 		assert(height_modification <= 0);
 
-		tree_view().resize_content(width_modification, height_modification);
+		tree_view().resize_content(width_modification, height_modification, -1, calculate_ypos());
 	} else {
 
 		// From folded to unfolded.
@@ -576,7 +580,7 @@ ttree_view_node::signal_handler_left_button_click(const event::tevent event)
 		const int height_modification = new_size.y - current_size.y;
 		assert(height_modification >= 0);
 
-		tree_view().resize_content(width_modification, height_modification);
+		tree_view().resize_content(width_modification, height_modification, -1, calculate_ypos());
 	}
 }
 
@@ -676,5 +680,19 @@ std::vector<int> ttree_view_node::describe_path()
 		assert(!"tree_view_node was not found in parent nodes children");
 		throw "assertion ignored"; //To silence 'no return value in this codepath' warning.
 	}
+}
+int ttree_view_node::calculate_ypos()
+{
+	if(!parent_node_) {
+		return 0;
+	}
+	int res = parent_node_->calculate_ypos();
+	FOREACH(const AUTO& node, parent_node_->children_) {
+		if(&node == this) {
+			break;
+		}
+		res += node.get_current_size(true).y;
+	}
+	return res;
 }
 } // namespace gui2

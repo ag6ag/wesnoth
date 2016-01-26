@@ -23,7 +23,6 @@ namespace gui2
 {
 
 class tselectable_;
-class ttoggle_button;
 class ttree_view;
 
 class ttree_view_node : public twidget
@@ -190,6 +189,8 @@ public:
 	*/
 	std::vector<int> describe_path();
 private:
+
+	int calculate_ypos();
 	/** See @ref twidget::request_reduce_width. */
 	virtual void request_reduce_width(const unsigned maximum_width) OVERRIDE;
 
@@ -223,8 +224,8 @@ private:
 	 */
 	const std::vector<tnode_definition>& node_definitions_;
 
-	/** The icon to show the folded state. */
-	ttoggle_button* icon_;
+	/** The toggle for the folded state. */
+	tselectable_* toggle_;
 
 	/** The label to show our selected state. */
 	tselectable_* label_;

@@ -27,9 +27,6 @@
 #include "video.hpp"
 #include "image.hpp"
 #include "text.hpp"
-#if SDL_VERSION_ATLEAST(2,0,0)
-#include "display.hpp"
-#endif
 
 #include <SDL_events.h>
 #include <SDL_image.h>
@@ -211,7 +208,7 @@ void loadscreen::draw_screen(const std::string &text)
 #if SDL_VERSION_ATLEAST(2,0,0)
 		if (ev.type == SDL_WINDOWEVENT &&
 				ev.window.event == SDL_WINDOWEVENT_RESIZED) {
-			update_framebuffer();
+			screen_.update_framebuffer();
 		}
 		if (ev.type == SDL_WINDOWEVENT &&
 				(ev.window.event == SDL_WINDOWEVENT_RESIZED ||

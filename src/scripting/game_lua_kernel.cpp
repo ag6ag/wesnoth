@@ -1648,7 +1648,7 @@ int game_lua_kernel::intf_message(lua_State *L)
 int game_lua_kernel::intf_open_help(lua_State *L)
 {
 	if (game_display_) {
-		help::show_help(*game_display_, luaL_checkstring(L, 1));
+		help::show_help(game_display_->video(), luaL_checkstring(L, 1));
 	}
 	return 0;
 }
@@ -2356,6 +2356,8 @@ int game_lua_kernel::intf_put_unit(lua_State *L)
 		u->set_location(loc);
 		units().insert(u);
 	}
+
+	play_controller_.pump().fire("unit placed", loc);
 
 	return 0;
 }
@@ -3531,9 +3533,7 @@ int game_lua_kernel::intf_delay(lua_State *L)
 	const unsigned final = SDL_GetTicks() + delay;
 	do {
 		play_controller_.play_slice(false);
-		if (game_display_) {
-			game_display_->delay(10);
-		}
+		CVideo::delay(10);
 	} while (int(final - SDL_GetTicks()) > 0);
 	return 0;
 }

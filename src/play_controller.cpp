@@ -373,6 +373,13 @@ void play_controller::fire_prestart()
 	// as those may cause the display to be refreshed.
 	update_locker lock_display(gui_->video());
 	gamestate().gamedata_.set_phase(game_data::PRESTART);
+
+	// Fire these right before prestart events, to catch only the units sides
+	// have started with.
+	BOOST_FOREACH(const unit& u, gamestate().board_.units()) {
+		pump().fire("unit placed", map_location(u.get_location()));
+	}
+
 	pump().fire("prestart");
 	// prestart event may modify start turn with WML, reflect any changes.
 	gamestate().gamedata_.get_variable("turn_number") = int(turn());
@@ -868,7 +875,7 @@ void play_controller::save_map()
 
 void play_controller::load_game()
 {
-	savegame::loadgame load(*gui_, game_config_, saved_game_);
+	savegame::loadgame load(gui_->video(), game_config_, saved_game_);
 	load.load_game();
 }
 
@@ -965,7 +972,7 @@ void play_controller::check_victory()
 		return;
 	}
 
-	if (non_interactive()) {
+	if (gui_->video().non_interactive()) {
 		LOG_AIT << "winner: ";
 		BOOST_FOREACH(unsigned l, not_defeated) {
 			std::string ai = ai::manager::get_active_ai_identifier_for_side(l);
@@ -986,7 +993,7 @@ void play_controller::check_victory()
 
 void play_controller::process_oos(const std::string& msg) const
 {
-	if (non_interactive()) {
+	if (gui_->video().non_interactive()) {
 		throw game::game_error(msg);
 	}
 	if (game_config::ignore_replay_errors) return;
@@ -1181,7 +1188,7 @@ void play_controller::play_turn()
 
 	LOG_NG << "turn: " << turn() << "\n";
 
-	if(non_interactive()) {
+	if(gui_->video().non_interactive()) {
 		LOG_AIT << "Turn " << turn() << ":" << std::endl;
 	}
 
@@ -1206,7 +1213,7 @@ void play_controller::play_turn()
 		if(is_regular_game_end()) {
 			return;
 		}
-		if(non_interactive()) {
+		if(gui_->video().non_interactive()) {
 			LOG_AIT << " Player " << current_side() << ": " <<
 				current_team().villages().size() << " Villages" <<
 				std::endl;
@@ -1236,7 +1243,7 @@ void play_controller::check_time_over()
 			return;
 		}
 
-		if(non_interactive()) {
+		if(gui_->video().non_interactive()) {
 			LOG_AIT << "time over (draw)\n";
 			ai_testing::log_draw();
 		}
