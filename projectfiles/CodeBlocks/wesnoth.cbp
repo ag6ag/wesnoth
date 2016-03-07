@@ -36,6 +36,7 @@
 			<Add option="-fopenmp" />
 			<Add option="-Wno-strict-aliasing" />
 			<Add option="-Wno-missing-braces" />
+			<Add option="-Wunused" />
 			<Add option="-DHAVE_LIBPNG" />
 			<Add option="-D_WIN32_WINDOWS" />
 			<Add option="-D_WIN32_WINNT=0x0501" />
@@ -428,7 +429,6 @@
 		<Unit filename="../../src/game_launcher.hpp" />
 		<Unit filename="../../src/game_preferences.cpp" />
 		<Unit filename="../../src/game_preferences.hpp" />
-		<Unit filename="../../src/game_preferences_display.cpp" />
 		<Unit filename="../../src/game_state.cpp" />
 		<Unit filename="../../src/game_state.hpp" />
 		<Unit filename="../../src/generators/cave_map_generator.cpp" />
@@ -711,8 +711,12 @@
 		<Unit filename="../../src/gui/dialogs/network_transmission.hpp" />
 		<Unit filename="../../src/gui/dialogs/popup.cpp" />
 		<Unit filename="../../src/gui/dialogs/popup.hpp" />
+		<Unit filename="../../src/gui/dialogs/preferences_dialog.cpp" />
+		<Unit filename="../../src/gui/dialogs/preferences_dialog.hpp" />
 		<Unit filename="../../src/gui/dialogs/screenshot_notification.cpp" />
 		<Unit filename="../../src/gui/dialogs/screenshot_notification.hpp" />
+		<Unit filename="../../src/gui/dialogs/select_orb_colors.cpp" />
+		<Unit filename="../../src/gui/dialogs/select_orb_colors.hpp" />
 		<Unit filename="../../src/gui/dialogs/simple_item_selector.cpp" />
 		<Unit filename="../../src/gui/dialogs/simple_item_selector.hpp" />
 		<Unit filename="../../src/gui/dialogs/synced_choice_wait.cpp" />
@@ -755,6 +759,7 @@
 		<Unit filename="../../src/gui/widgets/grid.cpp" />
 		<Unit filename="../../src/gui/widgets/grid.hpp" />
 		<Unit filename="../../src/gui/widgets/grid_private.hpp" />
+		<Unit filename="../../src/gui/widgets/group.hpp" />
 		<Unit filename="../../src/gui/widgets/helper.cpp" />
 		<Unit filename="../../src/gui/widgets/helper.hpp" />
 		<Unit filename="../../src/gui/widgets/horizontal_scrollbar.cpp" />

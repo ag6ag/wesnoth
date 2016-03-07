@@ -121,7 +121,6 @@ libwesnoth_sources = Split("""
     pathfind/astarsearch.cpp
     pathutils.cpp
     preferences.cpp
-    preferences_display.cpp
     quit_confirmation.cpp
     race.cpp
     reports.cpp
@@ -455,8 +454,10 @@ wesnoth_sources = Split("""
     gui/dialogs/mp_method_selection.cpp
     gui/dialogs/network_transmission.cpp
     gui/dialogs/popup.cpp
+    gui/dialogs/preferences_dialog.cpp
     gui/dialogs/edit_text.cpp
     gui/dialogs/screenshot_notification.cpp
+    gui/dialogs/select_orb_colors.cpp
     gui/dialogs/simple_item_selector.cpp
     gui/dialogs/synced_choice_wait.cpp
     gui/dialogs/theme_list.cpp
@@ -647,7 +648,7 @@ if env["PLATFORM"] == 'darwin':
 if env["notifications"]:
     wesnoth_sources.append("desktop/dbus_notification.cpp")
 
-wesnoth_sources.extend(client_env.Object("game_preferences_display.cpp", EXTRA_DEFINE = env["PLATFORM"] != "win32" and "WESNOTH_PREFIX='\"$prefix\"'" or None))
+wesnoth_sources.extend(client_env.Object("preferences_display.cpp", EXTRA_DEFINE = env["PLATFORM"] != "win32" and "WESNOTH_PREFIX='\"$prefix\"'" or None))
 
 libwesnoth_extras = client_env.Library("wesnoth_extras", wesnoth_sources)
 

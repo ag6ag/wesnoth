@@ -409,7 +409,7 @@ WML_HANDLER_FUNCTION(modify_turns, /*event_info*/, cfg)
 		if(new_turn_number_u < 1 || (new_turn_number > tod_man.number_of_turns() && tod_man.number_of_turns() != -1)) {
 			ERR_NG << "attempted to change current turn number to one out of range (" << new_turn_number << ")" << std::endl;
 		} else if(new_turn_number_u != current_turn_number) {
-			tod_man.set_turn_by_wml(new_turn_number_u, *resources::gamedata);
+			tod_man.set_turn_by_wml(new_turn_number_u, resources::gamedata);
 			resources::screen->new_turn();
 		}
 	}
@@ -1335,7 +1335,9 @@ WML_HANDLER_FUNCTION(unstore_unit, /*event_info*/, cfg)
 			resources::units->erase(loc);
 			resources::units->add(loc, *u);
 
-			resources::game_events->pump().fire("unit placed", loc);
+			if (cfg["fire_event"].to_bool(false)) {
+				resources::game_events->pump().fire("unit placed", loc);
+			}
 
 			config::attribute_value text = var["gender"].str() == "female" ? cfg["female_text"] : cfg["male_text"];
 			if(text.blank()) {

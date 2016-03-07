@@ -108,8 +108,10 @@ void tlistbox::remove_row(const unsigned row, unsigned count)
 		generator_->delete_item(row);
 	}
 
-	if(height_reduced != 0) {
+	if(height_reduced != 0 && get_item_count() != 0) {
 		resize_content(0, -height_reduced, 0, row_pos);
+	} else {
+		update_content_size();
 	}
 }
 
@@ -524,7 +526,7 @@ void tlistbox::finalize(tbuilder_grid_const_ptr header,
 	}
 	tgrid& p = find_widget<tgrid>(this, "_header_grid", false);
 	for(unsigned i = 0, max = std::max(p.get_cols(), p.get_rows()); i < max; ++i) {
-		if(tselectable_* selectable = find_widget<tselectable_>(p.widget(0,i), "sort_" +  lexical_cast<std::string>(i), false, false)) {
+		if(tselectable_* selectable = find_widget<tselectable_>(&p, "sort_" +  lexical_cast<std::string>(i), false, false)) {
 			selectable->set_callback_state_change(boost::bind(&tlistbox::order_by_column, this, i, _1));
 			if(orders_.size() < max ) {
 				orders_.resize(max);

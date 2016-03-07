@@ -140,7 +140,7 @@ int dialog_frame::top_padding() const {
 #endif
 	}
 	if(!title_.empty()) {
-		padding += font::get_max_height(font::SIZE_LARGE) + 2*dialog_frame::title_border_h;
+		padding += font::get_max_height(font::SIZE_TITLE) + 2*dialog_frame::title_border_h;
 	}
 	return padding;
 }
@@ -149,14 +149,36 @@ void dialog_frame::set_dirty(bool dirty) {
 	dirty_ = dirty;
 }
 
-void dialog_frame::handle_event(const SDL_Event& event) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+void dialog_frame::handle_window_event(const SDL_Event& event) {
+
 	if (event.type == SDL_WINDOWEVENT) {
-		dirty_ = true;
+		switch (event.window.event) {
+		case SDL_WINDOWEVENT_RESIZED:
+		case SDL_WINDOWEVENT_RESTORED:
+		case SDL_WINDOWEVENT_SHOWN:
+		case SDL_WINDOWEVENT_EXPOSED:
+			set_dirty();
+		}
 	}
-#else
-	UNUSED(event);
+}
 #endif
+
+void dialog_frame::handle_event(const SDL_Event& event) {
+
+	if (event.type == DRAW_ALL_EVENT) {
+		set_dirty();
+
+		if (buttons_) {
+			for(std::vector<button *>::iterator it = buttons_->begin(); it != buttons_->end(); ++it) {
+				(*it)->set_dirty(true);
+			}
+		}
+	}
+
+	if (event.type == DRAW_EVENT || event.type == DRAW_ALL_EVENT) {
+		draw();
+	}
 }
 
 int dialog_frame::bottom_padding() const {
@@ -385,8 +407,8 @@ void dialog_frame::draw_background()
 SDL_Rect dialog_frame::draw_title(CVideo* video)
 {
 	SDL_Rect rect = screen_area();
-	return font::draw_text(video, rect, font::SIZE_LARGE, font::TITLE_COLOR,
-	                       title_, dim_.title.x, dim_.title.y, false, TTF_STYLE_BOLD);
+	return font::draw_text(video, rect, font::SIZE_TITLE, font::TITLE_COLOR,
+	                       title_, dim_.title.x, dim_.title.y, false, TTF_STYLE_NORMAL);
 }
 
 void dialog_frame::draw()

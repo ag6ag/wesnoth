@@ -41,7 +41,6 @@
 #include "replay_helper.hpp"
 #include "sdl/utils.hpp"                // for int_to_color
 #include "serialization/string_utils.hpp"  // for unicode_em_dash
-#include "show_dialog.hpp"              // for dialog_button_info, etc
 #include "sound.hpp"
 #include "synced_context.hpp"
 #include "team.hpp"                     // for team
@@ -979,8 +978,7 @@ int mouse_handler::show_attack_dialog(const map_location& attacker_loc, const ma
 			  attacker
 			, defender
 			, bc_vector
-			, best
-			, gui_);
+			, best);
 
 	dlg.show(gui_->video());
 
@@ -1009,9 +1007,6 @@ void mouse_handler::attack_enemy_(const map_location& att_loc
 	// the data of the caller)
 	const map_location attacker_loc = att_loc;
 	const map_location defender_loc = def_loc;
-
-	//may fire event and modify things
-	pc_.get_undo_stack().clear();
 
 	unit_map::iterator attacker = find_unit(attacker_loc);
 	if(!attacker

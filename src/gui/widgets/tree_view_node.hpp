@@ -117,15 +117,13 @@ public:
 		, recursive_expand // recursively expands the children
 		, not_recursive
 	};
-
-
+#endif
 
 	// If recursive all children will be closed recursively causing
 	// restore expaning not to expand anything
-//		void fold(const bool recursive); // FIXME implement
-
-//		void unfold(const texpand_mode mode); // FIXME implement
-#endif
+	// TODO: ^ implement
+	void fold(/*const bool recursive*/);
+	void unfold(/*const texpand_mode mode*/);
 
 	/**
 	 * See @ref twidget::create_walker.
@@ -188,6 +186,30 @@ public:
 		calculates the node indicies that we need to get from the root node to this node.
 	*/
 	std::vector<int> describe_path();
+
+	/** Inherited from tselectable_.
+	 *
+	 * @param scope      Specifies the scope of the callback event
+	 *                   0 : on both fold and unfold
+	 *                   1 : on unfolded to folded
+	 *                   2 : on folded to unfolded
+	*/
+	void set_callback_state_change(
+			const int scope, boost::function<void(twidget&)> callback)
+	{
+		switch (scope) {
+			case 0:
+				callback_state_change_ = callback;
+				break;
+			case 1:
+				callback_state_to_folded_ = callback;
+				break;
+			case 2:
+				callback_state_to_unfolded_ = callback;
+				break;
+		}
+	}
+
 private:
 
 	int calculate_ypos();
@@ -230,6 +252,9 @@ private:
 	/** The label to show our selected state. */
 	tselectable_* label_;
 
+	void fold_internal();
+	void unfold_internal();
+
 	/**
 	 * "Inherited" from twidget.
 	 *
@@ -267,6 +292,15 @@ private:
 	virtual void impl_draw_children(surface& frame_buffer,
 									int x_offset,
 									int y_offset) OVERRIDE;
+									
+	/** See tselectable_::set_callback_state_change. */
+	boost::function<void(twidget&)> callback_state_change_;
+
+	/** See tselectable_::set_callback_state_change. */
+	boost::function<void(twidget&)> callback_state_to_folded_;
+
+	/** See tselectable_::set_callback_state_change. */
+	boost::function<void(twidget&)> callback_state_to_unfolded_;
 
 	// FIXME rename to icon
 	void signal_handler_left_button_click(const event::tevent event);

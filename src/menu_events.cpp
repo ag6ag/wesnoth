@@ -34,6 +34,7 @@
 #include "formatter.hpp"
 #include "formula_string_utils.hpp"
 #include "game_board.hpp"
+#include "game_config_manager.hpp"
 #include "game_end_exceptions.hpp"
 #include "game_events/manager.hpp"
 #include "game_events/pump.hpp"
@@ -927,7 +928,7 @@ namespace { // Helpers for create_unit()
 		// The unit creation dialog makes sure unit types
 		// are properly cached.
 		//
-		gui2::tunit_create create_dlg(&gui);
+		gui2::tunit_create create_dlg;
 		create_dlg.show(gui.video());
 
 		if(create_dlg.no_choice()) {
@@ -1073,9 +1074,8 @@ void menu_handler::clear_labels()
 }
 
 void menu_handler::label_settings() {
-	// TODO: I think redraw_everything might be a bit too much? It causes a flicker.
 	if(gui2::tlabel_settings::execute(board(), gui_->video()))
-		gui_->redraw_everything();
+		gui_->labels().recalculate_labels();
 }
 
 void menu_handler::continue_move(mouse_handler &mousehandler, int side_num)
@@ -1771,9 +1771,6 @@ class chat_command_handler : public map_command_handler<chat_command_handler>
 				_("Add a nickname to your friends list."), _("<nickname>"));
 			register_command("remove", &chat_command_handler::do_remove,
 				_("Remove a nickname from your ignores or friends list."), _("<nickname>"));
-			register_command("list", &chat_command_handler::do_display,
-				_("Show your ignores and friends list."));
-			register_alias("list", "display");
 			register_command("version", &chat_command_handler::do_version,
 				_("Display version information."));
 			register_command("register", &chat_command_handler::do_register,
@@ -1935,7 +1932,6 @@ class console_handler : public map_command_handler<console_handler>, private cha
 			chmap::get_command("version")->flags = ""; //clear network-only flag
 			chmap::get_command("ignore")->flags = ""; //clear network-only flag
 			chmap::get_command("friend")->flags = ""; //clear network-only flag
-			chmap::get_command("list")->flags = ""; //clear network-only flag
 			chmap::get_command("remove")->flags = ""; //clear network-only flag
 			chmap::set_cmd_prefix(":");
 			register_command("refresh", &console_handler::do_refresh,
@@ -2272,8 +2268,7 @@ void chat_command_handler::do_log()
 void chat_command_handler::do_ignore()
 {
 	if (get_arg(1).empty()) {
-		const std::map<std::string, std::string>& tmp = preferences::get_acquaintances_nice("ignore");
-		print(_("ignores list"), tmp.empty() ? _("(empty)") : utils::join_map(tmp, ")\n", " (") + ")");
+		do_display();
 	} else {
 		utils::string_map symbols;
 		symbols["nick"] = get_arg(1);
@@ -2290,8 +2285,7 @@ void chat_command_handler::do_ignore()
 void chat_command_handler::do_friend()
 {
 	if (get_arg(1).empty()) {
-		const std::map<std::string, std::string>& tmp = preferences::get_acquaintances_nice("friend");
-		print(_("friends list"), tmp.empty() ? _("(empty)") : utils::join_map(tmp, ")\n", " (") + ")");
+		do_display();
 	} else {
 		utils::string_map symbols;
 		symbols["nick"] = get_arg(1);
@@ -2318,20 +2312,9 @@ void chat_command_handler::do_remove()
 
 void chat_command_handler::do_display()
 {
-	const std::map<std::string, std::string>& friends = preferences::get_acquaintances_nice("friend");
-	const std::map<std::string, std::string>& ignores = preferences::get_acquaintances_nice("ignore");
-
-	if (!friends.empty()) {
-		print(_("friends list"), utils::join_map(friends, ")\n", " (") + ")");
-	}
-
-	if (!ignores.empty()) {
-		print(_("ignores list"), utils::join_map(ignores, ")\n", " (") + ")");
-	}
-
-	if (friends.empty() && ignores.empty()) {
-		print(_("friends and ignores list"), _("There are no players on your friends or ignore list."));
-	}
+	// TODO: add video and game config argument to chat_command_handler?
+	preferences::show_preferences_dialog(CVideo::get_singleton(), 
+		game_config_manager::get()->game_config(), preferences::VIEW_FRIENDS);
 }
 
 void chat_command_handler::do_version() {
@@ -2543,6 +2526,9 @@ std::vector<std::string> menu_handler::get_commands_list()
 
 void console_handler::do_refresh() {
 	image::flush_cache();
+
+	menu_handler_.gui_->create_buttons();
+
 	menu_handler_.gui_->redraw_everything();
 }
 

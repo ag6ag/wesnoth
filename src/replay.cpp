@@ -772,6 +772,9 @@ REPLAY_RETURN do_replay_handle(bool one_move)
 			else
 			{
 				resources::controller->do_init_side();
+				if (one_move) {
+					return REPLAY_FOUND_INIT_TURN;
+				}
 			}
 		}
 
@@ -846,7 +849,7 @@ REPLAY_RETURN do_replay_handle(bool one_move)
 					ERR_REPLAY << "recieved a synced [command] from side " << (*cfg)["from_side"].to_int(0) << ". Expacted was a [command] from side " << resources::controller->current_side() << "\n";
 				}
 				else if((*cfg)["side_invalid"].to_bool(false)) {
-					ERR_REPLAY << "recieved a synced [command] from side " << (*cfg)["from_side"].to_int(0) << ". Sended from wrong client.\n";
+					ERR_REPLAY << "recieved a synced [command] from side " << (*cfg)["from_side"].to_int(0) << ". Sent from wrong client.\n";
 				}
 				/*
 					we need to use the undo stack during replays in order to make delayed shroud updated work.

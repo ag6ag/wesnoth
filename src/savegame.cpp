@@ -21,8 +21,8 @@
 #include "save_index.hpp"
 #include "carryover.hpp"
 #include "config_assign.hpp"
-#include "dialogs.hpp" //FIXME: get rid of this as soon as the two remaining dialogs are moved to gui2
 #include "format_time_summary.hpp"
+#include "formatter.hpp"
 #include "formula_string_utils.hpp"
 #include "game_display.hpp"
 #include "game_end_exceptions.hpp"
@@ -94,6 +94,7 @@ loadgame::loadgame(CVideo& video, const config& game_config, saved_game& gamesta
 	, show_replay_(false)
 	, cancel_orders_(false)
 	, select_difficulty_(false)
+	, summary_()
 {}
 
 void loadgame::show_dialog()
@@ -115,21 +116,18 @@ void loadgame::show_dialog()
 		filename_ = load_dialog.filename();
 		show_replay_ = load_dialog.show_replay();
 		cancel_orders_ = load_dialog.cancel_orders();
+
+		summary_ = load_dialog.summary();
 	}
 }
 
 void loadgame::show_difficulty_dialog()
 {
-	create_save_info creator;
-	save_info info = creator(filename_);
-	const config& cfg_summary = info.summary();
-
-	if ( cfg_summary["corrupt"].to_bool() || (cfg_summary["replay"].to_bool() && !cfg_summary["snapshot"].to_bool(true))
-		|| (!cfg_summary["turn"].empty()) ) {
+	if(summary_["corrupt"].to_bool() || (is_replay_save(summary_)) || (!summary_["turn"].empty())) {
 		return;
 	}
 
-	std::string campaign_id = cfg_summary["campaign"];
+	std::string campaign_id = summary_["campaign"];
 
 	BOOST_FOREACH(const config &campaign, game_config_.child_range("campaign"))
 	{
@@ -313,6 +311,11 @@ bool loadgame::load_multiplayer_game()
 		gui2::show_error_message(video_,
 				_("The file you have tried to load is corrupt: '") +
 				error_log);
+		return false;
+	}
+
+	if(is_replay_save(summary_)) {
+		gui2::show_transient_message(video_, _("Load Game"), _("Replays are not supported in multiplayer mode."));
 		return false;
 	}
 
@@ -561,13 +564,7 @@ replay_savegame::replay_savegame(saved_game &gamestate, const compression::forma
 
 void replay_savegame::create_filename()
 {
-	std::stringstream stream;
-
-	const std::string ellipsed_name = font::make_text_ellipsis(gamestate().classification().label,
-			font::SIZE_NORMAL, 200);
-	stream << ellipsed_name << " " << _("replay");
-
-	set_filename(stream.str());
+	set_filename((formatter() << gamestate().classification().label << " " << _("replay")).str());
 }
 
 void replay_savegame::write_game(config_writer &out) {
@@ -610,19 +607,19 @@ void autosave_savegame::create_filename()
 	set_filename(filename);
 }
 
-oos_savegame::oos_savegame(saved_game& gamestate, game_display& gui)
+oos_savegame::oos_savegame(saved_game& gamestate, game_display& gui, bool& ignore)
 	: ingame_savegame(gamestate, gui, preferences::save_compression_format())
+	, ignore_(ignore)
 {}
 
 int oos_savegame::show_save_dialog(CVideo& video, const std::string& message, const gui::DIALOG_TYPE /*dialog_type*/)
 {
-	static bool ignore_all = false;
 	int res = 0;
 
 	std::string filename = this->filename();
 
-	if (!ignore_all){
-		gui2::tgame_save_oos dlg(ignore_all, filename, title(), message);
+	if (!ignore_){
+		gui2::tgame_save_oos dlg(ignore_, filename, title(), message);
 		dlg.show(video);
 		res = dlg.get_retval();
 	}
@@ -645,14 +642,9 @@ ingame_savegame::ingame_savegame(saved_game &gamestate,
 
 void ingame_savegame::create_filename()
 {
-	std::stringstream stream;
-
-	const std::string ellipsed_name = font::make_text_ellipsis(gamestate().classification().label,
-			font::SIZE_NORMAL, 200);
-	stream << ellipsed_name << " " << _("Turn") << " " << gamestate().get_starting_pos()["turn_at"];
-	set_filename(stream.str());
+	set_filename((formatter() << gamestate().classification().label
+		<< " " << _("Turn") << " " << gamestate().get_starting_pos()["turn_at"]).str());
 }
-
 
 void ingame_savegame::write_game(config_writer &out) {
 	log_scope("write_game");

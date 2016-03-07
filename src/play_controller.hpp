@@ -80,7 +80,7 @@ namespace wb {
 // Holds gamestate related objects
 class game_state;
 
-class play_controller : public controller_base, public events::observer, public savegame::savegame_config
+class play_controller : public controller_base, public events::observer, public savegame::savegame_config, quit_confirmation
 {
 public:
 	play_controller(const config& level, saved_game& state_of_game,
@@ -285,10 +285,10 @@ protected:
 
 	void init_managers();
 	///preload events cannot be synced
-	void fire_preload(const config& level);
+	void fire_preload();
 	void fire_prestart();
 	void fire_start();
-	void start_game(const config& level);
+	void start_game();
 	virtual void init_gui();
 	void finish_side_turn();
 	void finish_turn(); //this should not throw an end turn or end level exception
@@ -365,8 +365,8 @@ private:
 	hotkey::scope_changer scope_;
 
 protected:
+	mutable bool ignore_replay_errors_;
 	bool player_type_changed_;
-
 	virtual void sync_end_turn() {};
 	virtual void check_time_over();
 	virtual void update_viewing_player() = 0;

@@ -129,6 +129,7 @@ twidget* tgrid::swap_child(const std::string& id,
 		old->set_parent(new_parent);
 
 		widget->set_parent(this);
+		widget->set_visible(old->get_visible());
 		child.set_widget(widget);
 
 		return old;
@@ -473,8 +474,7 @@ void tgrid::place(const tpoint& origin, const tpoint& size)
 			pw = pw->parent();
 		}
 		ERR_GUI_L << LOG_HEADER << out.str() << ".\n";
-		// This shouldn't be possible...
-		assert(false);
+
 		return;
 	}
 

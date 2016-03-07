@@ -40,16 +40,12 @@
 #include "gui/widgets/window.hpp"
 #include "language.hpp"
 #include "preferences_display.hpp"
+#include "savegame.hpp"
 #include "utils/foreach.tpp"
+#include "serialization/string_utils.hpp"
 
 #include <cctype>
 #include <boost/bind.hpp>
-
-/* Helper function for determining if the selected save is a replay */
-static bool is_replay_save(const config& cfg)
-{
-	return cfg["replay"].to_bool() && !cfg["snapshot"].to_bool(true);
-}
 
 namespace gui2
 {
@@ -105,6 +101,7 @@ tgame_load::tgame_load(const config& cache_config)
 	, games_()
 	, cache_config_(cache_config)
 	, last_words_()
+	, summary_()
 {
 }
 
@@ -116,10 +113,9 @@ void tgame_load::pre_show(CVideo& /*video*/, twindow& window)
 
 	ttext_box* filter
 			= find_widget<ttext_box>(&window, "txtFilter", false, true);
-	window.keyboard_capture(filter);
+
 	filter->set_text_changed_callback(
 			boost::bind(&tgame_load::filter_text_changed, this, _1, _2));
-	window.keyboard_capture(filter);
 
 	tlistbox* list
 			= find_widget<tlistbox>(&window, "savegame_list", false, true);
@@ -133,6 +129,7 @@ void tgame_load::pre_show(CVideo& /*video*/, twindow& window)
 	list->set_callback_value_change(
 			dialog_callback<tgame_load, &tgame_load::list_item_clicked>);
 #endif
+	window.keyboard_capture(list);
 
 	{
 		cursor::setter cur(cursor::WAIT);
@@ -180,7 +177,9 @@ void tgame_load::fill_game_list(twindow& window,
 		std::map<std::string, string_map> data;
 		string_map item;
 
-		item["label"] = game.name();
+		std::string name = game.name();
+		utils::ellipsis_truncate(name, 50);
+		item["label"] = name;
 		data.insert(std::make_pair("filename", item));
 
 		item["label"] = game.format_time_summary();
@@ -254,6 +253,12 @@ void tgame_load::post_show(twindow& window)
 	change_difficulty_ = chk_change_difficulty_->get_widget_value(window);
 	show_replay_ = chk_show_replay_->get_widget_value(window);
 	cancel_orders_ = chk_cancel_orders_->get_widget_value(window);
+
+	if(!games_.empty()) {
+		const int index =
+			find_widget<tlistbox>(&window, "savegame_list", false).get_selected_row();
+		summary_ = games_[index].summary();
+	}
 }
 
 void tgame_load::display_savegame(twindow& window)
@@ -290,13 +295,13 @@ void tgame_load::display_savegame(twindow& window)
 	ttoggle_button& cancel_orders_toggle =
 			find_widget<ttoggle_button>(&window, "cancel_orders", false);
 
-	const bool is_replay = is_replay_save(summary);
+	const bool is_replay = savegame::loadgame::is_replay_save(summary);
 	const bool is_scenario_start = summary["turn"].empty();
 
 	// Always toggle show_replay on if the save is a replay
 	replay_toggle.set_value(is_replay);
 	replay_toggle.set_active(!is_replay && !is_scenario_start);
-	
+
 	// Cancel orders doesnt make sense on replay saves or start-of-scenario saves.
 	cancel_orders_toggle.set_active(!is_replay && !is_scenario_start);
 
@@ -366,7 +371,7 @@ void tgame_load::evaluate_summary_string(std::stringstream& str,
 
 		str << "\n";
 
-		if(is_replay_save(cfg_summary)) {
+		if(savegame::loadgame::is_replay_save(cfg_summary)) {
 			str << _("Replay");
 		} else if(!cfg_summary["turn"].empty()) {
 			str << _("Turn") << " " << cfg_summary["turn"];

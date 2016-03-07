@@ -152,6 +152,7 @@ play_controller::play_controller(const config& level, saved_game& state_of_game,
 	: controller_base(game_config, video)
 	, observer()
 	, savegame_config()
+	, quit_confirmation()
 	, ticks_(SDL_GetTicks())
 	, tdata_(tdata)
 	, gamestate_()
@@ -180,6 +181,7 @@ play_controller::play_controller(const config& level, saved_game& state_of_game,
 	, victory_music_()
 	, defeat_music_()
 	, scope_()
+	, ignore_replay_errors_(false)
 	, player_type_changed_(false)
 {
 	copy_persistent(level, level_);
@@ -306,6 +308,8 @@ void play_controller::init(CVideo& video, const config& level)
 	init_managers();
 	loadscreen::global_loadscreen->start_stage("start game");
 	loadscreen_manager->reset();
+	gamestate().gamedata_.set_phase(game_data::PRELOAD);
+	gamestate().lua_kernel_->initialize(level);
 
 	plugins_context_.reset(new plugins_context("Game"));
 	plugins_context_->set_callback("save_game", boost::bind(&play_controller::save_game_auto, this, boost::bind(get_str, _1, "filename" )), true);
@@ -345,6 +349,8 @@ void play_controller::reset_gamestate(const config& level, int replay_pos)
 	gui_->reset_reports(*gamestate().reports_);
 	gui_->change_display_context(&gamestate().board_);
 	saved_game_.get_replay().set_pos(replay_pos);
+	gamestate().gamedata_.set_phase(game_data::PRELOAD);
+	gamestate().lua_kernel_->initialize(level);
 }
 
 void play_controller::init_managers()
@@ -358,11 +364,9 @@ void play_controller::init_managers()
 	LOG_NG << "done initializing managers... " << (SDL_GetTicks() - ticks()) << std::endl;
 }
 
-void play_controller::fire_preload(const config& level)
+void play_controller::fire_preload()
 {
 	// Run initialization scripts, even if loading from a snapshot.
-	gamestate().gamedata_.set_phase(game_data::PRELOAD);
-	gamestate().lua_kernel_->initialize(level);
 	gamestate().gamedata_.get_variable("turn_number") = int(turn());
 	pump().fire("preload");
 }
@@ -1003,7 +1007,7 @@ void play_controller::process_oos(const std::string& msg) const
 	message << "\n\n" << _("Error details:") << "\n\n" << msg;
 
 	scoped_savegame_snapshot snapshot(*this);
-	savegame::oos_savegame save(saved_game_, *gui_);
+	savegame::oos_savegame save(saved_game_, *gui_, ignore_replay_errors_);
 	save.save_game_interactive(gui_->video(), message.str(), gui::YES_NO); // can throw quit_game_exception
 }
 
@@ -1084,9 +1088,9 @@ void play_controller::play_slice_catch()
 	}
 }
 
-void play_controller::start_game(const config& level)
+void play_controller::start_game()
 {
-	fire_preload(level);
+	fire_preload();
 
 	if(!gamestate().start_event_fired_)
 	{
@@ -1231,7 +1235,7 @@ void play_controller::play_turn()
 
 void play_controller::check_time_over()
 {
-	const bool time_left = gamestate().tod_manager_.next_turn(gamestate().gamedata_);
+	const bool time_left = gamestate().tod_manager_.next_turn(&gamestate().gamedata_);
 
 	if(!time_left) {
 		LOG_NG << "firing time over event...\n";

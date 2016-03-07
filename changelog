@@ -1,20 +1,41 @@
-Version 1.13.2+dev:
+Version 1.13.4+dev:
+ * Language and i18n:
+   * Updated translations:
+
+Version 1.13.4:
+ * Language and i18n:
+   * Updated translations: British English, Russian
+ * Graphics:
+   * Improved or new terrain graphics: Mine Walls (replaces Hewn Cave Walls).
+ * User interface:
+   * Fix vertical alignment of individual attacks listed in the Attack Unit
+     dialog.
+   * Removed extra padding below unit stats in the Attack Unit dialog.
+ * Miscellaneous and bug fixes:
+   * Fix non-deterministic crashes in the Attack Unit dialog resulting from
+     invalid memory references (regression introduced in 1.13.3).
+   * Fix uninitialized variable in event handling code (bug #24498).
+
+Version 1.13.3:
  * Greatly improved SDL 2 support. SDL 2 is now used by default build when
    building. This fixes the following bugs, among others:
    * Bug #18112: Color cursors cause slow mouse movement at menus
-   * Bug #20332: Cursor not mapping correctly on Retina display when in Windowed
-     mode
-   * Bug #24138: SDL 2 crash on resize after starting a game and returning to
-     the title screen
-   * Bug #23908: SDL 2 SDL_BlitSurface causes crashes
-   * Bug #23821: Text input is broken in GUI1 under SDL 2
+   * Bug #19666: When I resize windows during dialog I lose the menu buttons
+   * Bug #20332: Cursor not mapping correctly on Retina display when in Windowed mode
    * Bug #23820: SDL 2 alpha blending issues
+   * Bug #23821: Text input is broken in GUI1 under SDL 2
+   * Bug #23908: SDL 2 SDL_BlitSurface causes crashes
    * Bug #23918: UI graphics garbled on OS X 10.11 El Capitan
-   * Bug #24214: SDL 2 build handles fullscreen toggle badly
    * Bug #23934: Resize actions are laggy
+   * Bug #24138: SDL 2 crash on resize after starting a game and returning to the title screen
    * Bug #24209: Screen becomes black upon minimise and restore
-   * Bug #24213: SDL 2 build leaves menu items stuck if window dimensions
-     change while open
+   * bug #24212: SDL 2 build handled input incorrectly once window focus is lost when menus are open
+   * Bug #24213: SDL 2 build leaves menu items stuck if window dimensions change while open
+   * Bug #24214: SDL 2 build handles fullscreen toggle badly
+   * Bug #24260: Menu and Action buttons disappear on resize
+   * Bug #24261: Area under Objectives not redrawn on resize
+   * Bug #24294: Doubled-up GUI1 dialogs don't redraw the secondary in SDL2
+   * Bug #24477: Segfault when launching Credits
  * Campaigns:
    * Liberty:
      * Added some animations for the Rogue Mage line.
@@ -30,30 +51,60 @@ Version 1.13.2+dev:
  * Graphics:
    * Improved or new terrain graphics: Stones with Sand Drifts, Igloo Village,
      Adobe Village.
+   * Added option for toggling off water animations to Preferences -> Display.
  * Language and i18n:
-   * Updated translations: British English, Russian, Swedish
+   * New translation: Asturian
+   * Updated translations: British English, Galician, Russian, Swedish
  * Sound effects:
    * Fixed various subtle timing problems with attack sounds.
  * Terrains:
-   * New terrain: Ruined Adobe Village (^Vdr).
+   * New terrain: Desert Mountains (Mdy), Impassable Desert Mountains (Mdy^Xm),
+     Ruined Adobe Village (^Vdr).
  * User Interface:
    * GUI1 comboboxes now use the thinner menu frame style.
    * Implemented a new GUI2 Attack dialog
    * Added gui2 comboboxes.
+   * Removed prompt when purging the WML cache from Preferences.
+   * Implemented a new GUI2 Preferences dialog
+   * Implemented a new font scaling option on the Display panel.
+   * Selecting an entry in the friend/ignore list panel now copies it to the
+     input field; this makes it easier to edit friend/ignore notes.
  * WML engine:
    * Added new event "unit placed", which triggers when (and regardless of how)
      a unit appears on the map.
    * Added support for color= in [unstore_unit] and [print]
+   * removed network and network_ai controlles, whether a side is networked is
+     now stored in the is_local attribute.
+   * Eventnames (received in wesnoth.game_events.on_event) now have all their
+     spaces replaced with underscores.
+   * lua can now read/write the 'persistent' attribute of sides.
+   * lua can now read/write the 'alignment' attribute of units.
+   * Added {CURRENT_FILE} and {CURRENT_DIRECTORY} macros.
+   * add support for relative dirs in wesnoth.dofile/require
+   * Added name= and write_name= attributes in [item]
+   * Added description_alignment= key to [campaign]
+   * Fixed [put_to_recall_list] not working correctly (bug #24390)
  * Miscellaneous and bug fixes:
    * Fix the new log code on Windows to actually use Unicode-aware functions
      in a couple of places so Wesnoth does not quit on startup when trying to
      relocate the log file to a path with Unicode characters (bug #22897,
      definitely fixed this time).
+   * Decreased high memory consumption caused by the animated water.
    * Fix bug #23108: exclude aborted attacks from statistics
    * imgcheck now runs on Python 3
    * Fix bug #15259: Secondary click uses control-click instead of command-click in OS X
    * New hi-res icon using new logo for OS X
    * Removed the "wmlmove" Python tool
+   * Fixed [event] in [unit_type].
+   * Fixed oos caused by mp replay turn feature.
+   * Fixed oos bugs caused by plattform dependent rounding from double to int in lua.
+   * Fixed custom (lua-defined) scenario tags beeing removed from [replay_start]
+   * Fixed savefile bloat caused by unit variations (walking corpses)
+   * Fixed preferences file bloat caused by null-command hot-keys (bug #21969)
+   * Fixed clearing of default hot-keys not working (bugs #21983/#22218/#23981)
+   * Fix [for] not correctly handling the case when the array length changes
+     during iteration
+   * Fix variables in [message][command] (bug #24288)
 
 Version 1.13.2:
  * Add-ons client:

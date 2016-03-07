@@ -126,6 +126,11 @@ void tcontrol::set_members(const string_map& data)
 	if(itor != data.end()) {
 		set_use_markup(utils::string_bool(itor->second));
 	}
+
+	itor = data.find("text_alignment");
+	if(itor != data.end()) {
+		set_text_alignment(decode_text_alignment(itor->second));
+	}
 }
 
 bool tcontrol::disable_click_dismiss() const
@@ -419,8 +424,8 @@ void tcontrol::definition_load_configuration(const std::string& control_type)
 	set_config(get_control(control_type, definition_));
 	if(canvas().size() != config()->state.size())
 	{
-		/// @TODO: Some widgets (toggle panel, toggle button) have a variable canvas count which is determined by its definition.
-		/// I think we should remove the canvas_count from tcontrols construcor and always read it from the definition.
+		// TODO: Some widgets (toggle panel, toggle button) have a variable canvas count which is determined by its definition.
+		// I think we should remove the canvas_count from tcontrols constructor and always read it from the definition.
 		LOG_GUI_L << "Corrected canvas count to " << config()->state.size();
 		canvas() = std::vector<tcanvas>(config()->state.size());
 	}

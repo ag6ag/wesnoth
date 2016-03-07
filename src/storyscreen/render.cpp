@@ -382,8 +382,13 @@ bool part_ui::render_floating_images()
 		const floating_image& fi = p_.get_floating_images()[fi_n];
 
 		if(!ri.image.null()) {
-			sdl_blit(ri.image, NULL, video_.getSurface(), &ri.rect);
-			update_rect(ri.rect);
+			render_background();
+			for (size_t i = 0; i <= fi_n; i++)
+			{
+				floating_image::render_input& old_ri = imgs_[i];
+				sdl_blit(old_ri.image, NULL, video_.getSurface(), &old_ri.rect);
+				update_rect(old_ri.rect);
+			}
 		}
 
 		if (!skip_)
@@ -1002,7 +1007,17 @@ part_ui::RESULT part_ui::show()
 
 void part_ui::handle_event(const SDL_Event &event)
 {
+	if (event.type == DRAW_ALL_EVENT) {
+		dirty_ = true;
+		draw();
+	}
+
+}
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+void part_ui::handle_window_event(const SDL_Event &event)
+{
+
 	if (event.type == SDL_WINDOWEVENT &&
 			(event.window.event == SDL_WINDOWEVENT_MAXIMIZED ||
 					event.window.event == SDL_WINDOWEVENT_RESIZED ||
@@ -1016,10 +1031,8 @@ void part_ui::handle_event(const SDL_Event &event)
 		this->prepare_floating_images();
 		dirty_ = true;
 	}
-#else
-	UNUSED(event);
-#endif
 }
+#endif
 
 
 } // end namespace storyscreen

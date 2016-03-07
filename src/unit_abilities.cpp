@@ -132,12 +132,11 @@ bool unit::get_ability_bool(const std::string& tag_name, const map_location& loc
 {
 	assert(resources::teams);
 
-	if (const config &abilities = cfg_.child("abilities"))
-	{
-		BOOST_FOREACH(const config &i, abilities.child_range(tag_name)) {
-			if (ability_active(tag_name, i, loc) &&
-			    ability_affects_self(tag_name, i, loc))
-				return true;
+	BOOST_FOREACH(const config &i, this->abilities_.child_range(tag_name)) {
+		if (ability_active(tag_name, i, loc) &&
+			ability_affects_self(tag_name, i, loc))
+		{
+			return true;
 		}
 	}
 
@@ -155,14 +154,13 @@ bool unit::get_ability_bool(const std::string& tag_name, const map_location& loc
 		// ourself.
 		if ( &*it == this )
 			continue;
-		const config &adj_abilities = it->cfg_.child("abilities");
-		if (!adj_abilities)
-			continue;
-		BOOST_FOREACH(const config &j, adj_abilities.child_range(tag_name)) {
+		BOOST_FOREACH(const config &j, it->abilities_.child_range(tag_name)) {
 			if (affects_side(j, *resources::teams, side(), it->side()) &&
 			    it->ability_active(tag_name, j, adjacent[i]) &&
 			    ability_affects_adjacent(tag_name,  j, i, loc, *it))
+			{
 				return true;
+			}
 		}
 	}
 
@@ -175,12 +173,11 @@ unit_ability_list unit::get_abilities(const std::string& tag_name, const map_loc
 
 	unit_ability_list res;
 
-	if (const config &abilities = cfg_.child("abilities"))
-	{
-		BOOST_FOREACH(const config &i, abilities.child_range(tag_name)) {
-			if (ability_active(tag_name, i, loc) &&
-			    ability_affects_self(tag_name, i, loc))
-				res.push_back(unit_ability(&i, loc));
+	BOOST_FOREACH(const config &i, this->abilities_.child_range(tag_name)) {
+		if (ability_active(tag_name, i, loc) &&
+			ability_affects_self(tag_name, i, loc))
+		{
+			res.push_back(unit_ability(&i, loc));
 		}
 	}
 
@@ -198,14 +195,13 @@ unit_ability_list unit::get_abilities(const std::string& tag_name, const map_loc
 		// ourself.
 		if ( &*it == this )
 			continue;
-		const config &adj_abilities = it->cfg_.child("abilities");
-		if (!adj_abilities)
-			continue;
-		BOOST_FOREACH(const config &j, adj_abilities.child_range(tag_name)) {
+		BOOST_FOREACH(const config &j, it->abilities_.child_range(tag_name)) {
 			if (affects_side(j, *resources::teams, side(), it->side()) &&
 			    it->ability_active(tag_name, j, adjacent[i]) &&
 			    ability_affects_adjacent(tag_name, j, i, loc, *it))
+			{
 				res.push_back(unit_ability(&j, adjacent[i]));
+			}
 		}
 	}
 
@@ -217,9 +213,7 @@ std::vector<std::string> unit::get_ability_list() const
 {
 	std::vector<std::string> res;
 
-	const config &abilities = cfg_.child("abilities");
-	if (!abilities) return res;
-	BOOST_FOREACH(const config::any_child &ab, abilities.all_children_range()) {
+	BOOST_FOREACH(const config::any_child &ab, this->abilities_.all_children_range()) {
 		std::string const &id = ab.cfg["id"];
 		if (!id.empty())
 			res.push_back(id);
@@ -272,10 +266,7 @@ std::vector<boost::tuple<t_string,t_string,t_string> > unit::ability_tooltips(st
 	if ( active_list )
 		active_list->clear();
 
-	const config &abilities = cfg_.child("abilities");
-	if (!abilities) return res;
-
-	BOOST_FOREACH(const config::any_child &ab, abilities.all_children_range())
+	BOOST_FOREACH(const config::any_child &ab, this->abilities_.all_children_range())
 	{
 		if ( !active_list || ability_active(ab.key, ab.cfg, loc_) )
 		{
@@ -429,11 +420,8 @@ bool unit::ability_affects_self(const std::string& ability,const config& cfg,con
 
 bool unit::has_ability_type(const std::string& ability) const
 {
-	if (const config &list = cfg_.child("abilities")) {
-		config::const_child_itors itors = list.child_range(ability);
-		return itors.first != itors.second;
-	}
-	return false;
+	config::const_child_itors itors = this->abilities_.child_range(ability);
+	return itors.first != itors.second;
 }
 
 
@@ -697,6 +685,7 @@ void attack_type::set_specials_context(const map_location& unit_loc,
 	other_loc_ = other_loc;
 	is_attacker_ = attacking;
 	other_attack_ = other_attack;
+	is_for_listing_ = false;
 }
 
 /**
@@ -711,6 +700,12 @@ void attack_type::set_specials_context(const map_location& loc, bool attacking) 
 	other_loc_ = map_location::null_location();
 	is_attacker_ = attacking;
 	other_attack_ = NULL;
+	is_for_listing_ = false;
+}
+
+void attack_type::set_specials_context_for_listing() const
+{
+	is_for_listing_ = true;
 }
 
 
@@ -815,9 +810,10 @@ namespace { // Helpers for attack_type::special_active()
 		                             const map_location & loc,
 		                             const attack_type * weapon,
 		                             const config & filter,
+									 const bool for_listing,
 		                             const std::string & child_tag)
 	{
-		if (!loc.valid() || !u2.valid())
+		if (for_listing && !loc.valid())
 			// The special's context was set to ignore this unit, so assume we pass.
 			// (This is used by reports.cpp to show active specials when the
 			// opponent is not known. From a player's perspective, the special
@@ -829,10 +825,23 @@ namespace { // Helpers for attack_type::special_active()
 		if ( !filter_child )
 			// The special does not filter on this unit, so we pass.
 			return true;
+		
+		// If the primary unit doesn't exist, there's nothing to match
+		if (!un_it.valid()) {
+			return false;
+		}
+		
+		unit_filter ufilt(vconfig(filter_child), resources::filter_con);
+		
+		// If the other unit doesn't exist, try matching without it
+		if (!u2.valid()) {
+			return ufilt.matches(*un_it, loc);
+		}
 
 		// Check for a unit match.
-		if ( !un_it.valid() || !unit_filter(vconfig(filter_child), resources::filter_con).matches(*un_it, loc, *u2))
+		if (!ufilt.matches(*un_it, loc, *u2)) {
 			return false;
+		}
 
 		// Check for a weapon match.
 		if ( const config & filter_weapon = filter_child.child("filter_weapon") ) {
@@ -902,13 +911,13 @@ bool attack_type::special_active(const config& special, AFFECTS whom,
 	const attack_type * def_weapon = is_attacker_ ? other_attack_ : this;
 
 	// Filter the units involved.
-	if (!special_unit_matches(self, other, self_loc_, this, special, "filter_self"))
+	if (!special_unit_matches(self, other, self_loc_, this, special, is_for_listing_, "filter_self"))
 		return false;
-	if (!special_unit_matches(other, self, other_loc_, other_attack_, special, "filter_opponent"))
+	if (!special_unit_matches(other, self, other_loc_, other_attack_, special, is_for_listing_, "filter_opponent"))
 		return false;
-	if (!special_unit_matches(att, def, att_loc, att_weapon, special, "filter_attacker"))
+	if (!special_unit_matches(att, def, att_loc, att_weapon, special, is_for_listing_, "filter_attacker"))
 		return false;
-	if (!special_unit_matches(def, att, def_loc, def_weapon, special, "filter_defender"))
+	if (!special_unit_matches(def, att, def_loc, def_weapon, special, is_for_listing_, "filter_defender"))
 		return false;
 
 	map_location adjacent[6];
@@ -919,13 +928,13 @@ bool attack_type::special_active(const config& special, AFFECTS whom,
 	{
 		size_t count = 0;
 		std::vector<map_location::DIRECTION> dirs = map_location::parse_directions(i["adjacent"]);
+		unit_filter filter(vconfig(i), resources::filter_con);
 		BOOST_FOREACH(const map_location::DIRECTION index, dirs)
 		{
 			if (index == map_location::NDIRECTIONS)
 				continue;
 			unit_map::const_iterator unit = units.find(adjacent[index]);
-			if ( unit == units.end() ||
-			     !unit_filter(vconfig(i), resources::filter_con).matches(*unit, adjacent[index], *self)) //TODO: Should this filter get precomputed?
+			if (unit == units.end() || !filter.matches(*unit, adjacent[index], *self))
 				return false;
 			if (i.has_attribute("is_enemy")) {
 				const display_context& dc = resources::filter_con->get_disp_context();
@@ -948,11 +957,11 @@ bool attack_type::special_active(const config& special, AFFECTS whom,
 	{
 		size_t count = 0;
 		std::vector<map_location::DIRECTION> dirs = map_location::parse_directions(i["adjacent"]);
+		terrain_filter adj_filter(vconfig(i), resources::filter_con);
 		BOOST_FOREACH(const map_location::DIRECTION index, dirs)
 		{
 			if (index == map_location::NDIRECTIONS)
 				continue;
-			terrain_filter adj_filter(vconfig(i), resources::filter_con);
 			if(!adj_filter.match(adjacent[index])) {
 				return false;
 			}

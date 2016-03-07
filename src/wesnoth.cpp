@@ -715,6 +715,7 @@ static int do_gameloop(const std::vector<std::string>& args)
 		handle_lua_script_args(&*game,cmdline_opts);
 
 		plugins.play_slice();
+		plugins.play_slice();
 
 		if(cmdline_opts.unit_test) {
 			if(cmdline_opts.timeout) {
@@ -769,6 +770,8 @@ static int do_gameloop(const std::vector<std::string>& args)
 		gui2::ttitle_screen::tresult res = game->is_loading()
 				? gui2::ttitle_screen::LOAD_GAME
 				: gui2::ttitle_screen::NOTHING;
+
+		preferences::load_hotkeys();
 
 		const font::floating_label_context label_manager;
 
@@ -859,10 +862,7 @@ static int do_gameloop(const std::vector<std::string>& args)
 			image::flush_cache();
 			continue;
 		} else if(res == gui2::ttitle_screen::START_MAP_EDITOR) {
-			///@todo editor can ask the game to quit completely
-			if (game->start_editor() == editor::EXIT_QUIT_TO_DESKTOP) {
-				return 0;
-			}
+			game->start_editor();
 			continue;
 		}
 		game->launch_game(should_reload);
@@ -984,7 +984,7 @@ int main(int argc, char** argv)
 	//       running before then if requested, so just perform a trivial search
 	//       here and let program_options ignore the switch later.
 	for(size_t k = 0; k < args.size(); ++k) {
-		if(args[k] == "--wconsole") {
+		if(args[k] == "--wconsole" || args[k] == "--help") {
 			lg::enable_native_console_output();
 			break;
 		}

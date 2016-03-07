@@ -780,7 +780,6 @@ bool game_launcher::load_game()
 
 	if(state_.classification().campaign_type == game_classification::CAMPAIGN_TYPE::MULTIPLAYER) {
 		state_.unify_controllers();
-		gui2::show_message(video(), _("Warning") , _("This is a multiplayer scenario. Some parts of it may not work properly in single-player. It is recommended to load this scenario through the <b>Multiplayer</b> → <b>Load Game</b> dialog instead."), "", true, true);
 	}
 
 	if (load.cancel_orders()) {
@@ -1068,8 +1067,6 @@ void game_launcher::show_preferences()
 {
 	preferences::show_preferences_dialog(video(),
 	    game_config_manager::get()->game_config());
-
-	video().flip();
 }
 
 void game_launcher::launch_game(RELOAD_GAME_DATA reload)

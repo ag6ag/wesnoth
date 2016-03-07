@@ -876,7 +876,6 @@ set(wesnoth-main_SRC
 	game_events/wmi_container.cpp
 	game_launcher.cpp
 	game_preferences.cpp
-	game_preferences_display.cpp
 	game_state.cpp
 	generic_event.cpp
 	gui/auxiliary/canvas.cpp
@@ -937,8 +936,10 @@ set(wesnoth-main_SRC
 	gui/dialogs/mp_method_selection.cpp
 	gui/dialogs/network_transmission.cpp
 	gui/dialogs/popup.cpp
+	gui/dialogs/preferences_dialog.cpp
 	gui/dialogs/edit_text.cpp
 	gui/dialogs/screenshot_notification.cpp
+	gui/dialogs/select_orb_colors.cpp
 	gui/dialogs/simple_item_selector.cpp
 	gui/dialogs/synced_choice_wait.cpp
 	gui/dialogs/theme_list.cpp

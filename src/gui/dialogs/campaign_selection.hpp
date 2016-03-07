@@ -17,7 +17,6 @@
 
 #include "gui/dialogs/dialog.hpp"
 
-#include "config.hpp"
 #include "game_initialization/create_engine.hpp"
 
 namespace gui2
@@ -31,6 +30,7 @@ public:
 		choice_(-1),
 		deterministic_(false)
 	{
+		set_restore(true);
 	}
 
 	/***** ***** ***** setters / getters for members ***** ****** *****/

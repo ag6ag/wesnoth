@@ -603,9 +603,7 @@ void set_user_config_dir(std::string newconfigdir)
 
 static const path &get_user_data_path()
 {
-	// TODO:
-	// This function is called frequently. The file_exists call may slow things down a lot.
-	if (user_data_dir.empty() || !file_exists(user_data_dir))
+	if (user_data_dir.empty())
 	{
 		set_user_data_dir(std::string());
 	}
@@ -765,7 +763,7 @@ std::string read_file(const std::string &fname)
 	return ss.str();
 }
 
-#if BOOST_VERSION < 1048000
+#if BOOST_VERSION < 104800
 //boost iostream < 1.48 expects boost filesystem v2 paths. This is an adapter
 struct iostream_path
 {
@@ -820,7 +818,7 @@ std::istream *istream_file(const std::string &fname, bool treat_failure_as_error
 	}
 }
 
-std::ostream *ostream_file(std::string const &fname)
+std::ostream *ostream_file(std::string const &fname, bool create_directory)
 {
 	LOG_FS << "streaming " << fname << " for writing.\n";
 #if 1
@@ -831,6 +829,12 @@ std::ostream *ostream_file(std::string const &fname)
 	}
 	catch(BOOST_IOSTREAMS_FAILURE& e)
 	{
+		// If this operation failed because the parent directoy didn't exist, create the parent directoy and retry.
+		error_code ec_unused;
+		if(create_directory && bfs::create_directories(bfs::path(fname).parent_path(), ec_unused))
+		{
+			return ostream_file(fname, false);
+		}
 		throw filesystem::io_exception(e.what());
 	}
 #else

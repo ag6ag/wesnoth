@@ -79,6 +79,8 @@ tcampaign_difficulty::tcampaign_difficulty(
 	, campaign_id_(campaign["id"])
 	, selected_difficulty_()
 {
+	set_restore(true);
+
 	// Populate local config with difficulty children
 	difficulties_.append_children(campaign, "difficulty");
 
@@ -122,7 +124,7 @@ void tcampaign_difficulty::pre_show(CVideo& /*video*/, twindow& window)
 		data["icon"]["label"] = d["image"];
 		data["label"]["label"] = d["label"];
 		data["label"]["use_markup"] = "true";
-		data["description"]["label"] = d["old_markup"].to_bool() ? d["description"]
+		data["description"]["label"] = d["old_markup"].to_bool() || d["description"].empty() ? d["description"]
 			: std::string("(") + d["description"] + std::string(")");
 		data["description"]["use_markup"] = "true";
 

@@ -59,7 +59,10 @@ namespace preferences {
 
 class prefs_event_handler : public events::sdl_handler {
 public:
-	virtual void handle_event(const SDL_Event &event);
+	virtual void handle_event(const SDL_Event &) {}
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	virtual void handle_window_event(const SDL_Event &event);
+#endif
 	prefs_event_handler() :	sdl_handler(false) {}
 };
 
@@ -102,14 +105,15 @@ base_manager::~base_manager()
 	} catch (...) {}
 }
 
-/* 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+/*
  * Hook for setting window state variables on window resize and maximize
- * events. Since there is no fullscreen window event, that setter is called 
+ * events. Since there is no fullscreen window event, that setter is called
  * from the CVideo function instead.
  */
-void prefs_event_handler::handle_event(const SDL_Event& event)
+void prefs_event_handler::handle_window_event(const SDL_Event& event)
 {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+
 	// Saftey check to make sure this is a window event
 	if (event.type != SDL_WINDOWEVENT) return;
 
@@ -125,14 +129,12 @@ void prefs_event_handler::handle_event(const SDL_Event& event)
 		break;
 
 	case SDL_WINDOWEVENT_RESTORED:
-		_set_maximized(false);
+		_set_maximized(fullscreen() || false);
 
 		break;
 	}
-#else
-	UNUSED(event);
-#endif
 }
+#endif
 
 void write_preferences()
 {
@@ -212,6 +214,10 @@ std::string get(const std::string& key) {
 	return prefs[key];
 }
 
+std::string get(const std::string& key, const std::string& def) {
+	return prefs[key].empty() ? def : prefs[key];
+}
+
 bool get(const std::string &key, bool def)
 {
 	return prefs[key].to_bool(def);
@@ -263,11 +269,22 @@ void set_show_partial_orb(bool show_orb) {
 }
 
 
+static std::string fix_orb_color_name(const std::string& color) {
+	if (color.substr(0,4) == "orb_") {
+		if(color[4] >= '0' && color[4] <= '9') {
+			return color.substr(5);
+		} else {
+			return color.substr(4);
+		}
+	}
+	return color;
+}
+
 std::string allied_color() {
 	std::string ally_color = get("ally_orb_color");
 	if (ally_color.empty())
 		return game_config::colors::ally_orb_color;
-	return ally_color;
+	return fix_orb_color_name(ally_color);
 }
 void set_allied_color(const std::string& color_id) {
 	prefs["ally_orb_color"] = color_id;
@@ -287,7 +304,7 @@ std::string enemy_color() {
 	std::string enemy_color = get("enemy_orb_color");
 	if (enemy_color.empty())
 		return game_config::colors::enemy_orb_color;
-	return enemy_color;
+	return fix_orb_color_name(enemy_color);
 }
 void set_enemy_color(const std::string& color_id) {
 	prefs["enemy_orb_color"] = color_id;
@@ -297,7 +314,7 @@ std::string moved_color() {
 	std::string moved_color = get("moved_orb_color");
 	if (moved_color.empty())
 		return game_config::colors::moved_orb_color;
-	return moved_color;
+	return fix_orb_color_name(moved_color);
 }
 void set_moved_color(const std::string& color_id) {
 	prefs["moved_orb_color"] = color_id;
@@ -307,7 +324,7 @@ std::string unmoved_color() {
 	std::string unmoved_color = get("unmoved_orb_color");
 	if (unmoved_color.empty())
 		return game_config::colors::unmoved_orb_color;
-	return unmoved_color;
+	return fix_orb_color_name(unmoved_color);
 }
 void set_unmoved_color(const std::string& color_id) {
 	prefs["unmoved_orb_color"] = color_id;
@@ -317,7 +334,7 @@ std::string partial_color() {
 	std::string partmoved_color = get("partial_orb_color");
 	if (partmoved_color.empty())
 		return game_config::colors::partial_orb_color;
-	return partmoved_color;
+	return fix_orb_color_name(partmoved_color);
 }
 void set_partial_color(const std::string& color_id) {
 	prefs["partial_orb_color"] = color_id;
@@ -345,8 +362,7 @@ int min_allowed_height()
 
 std::pair<int,int> resolution()
 {
-	const std::string postfix = fullscreen() ? "resolution" : "windowsize";
-	std::string x = prefs['x' + postfix], y = prefs['y' + postfix];
+	const std::string& x = prefs["xresolution"], y = prefs["yresolution"];
 
 	if (!x.empty() && !y.empty()) {
 		return std::make_pair(
@@ -359,7 +375,7 @@ std::pair<int,int> resolution()
 
 bool maximized()
 {
-	return get("maximized", (fullscreen() & true));
+	return get("maximized", !fullscreen());
 }
 
 bool fullscreen()
@@ -369,9 +385,8 @@ bool fullscreen()
 
 void _set_resolution(const std::pair<int, int>& res)
 {
-	const std::string postfix = fullscreen() ? "resolution" : "windowsize";
-	preferences::set('x' + postfix, lexical_cast<std::string>(res.first));
-	preferences::set('y' + postfix, lexical_cast<std::string>(res.second));
+	preferences::set("xresolution", lexical_cast<std::string>(res.first));
+	preferences::set("yresolution", lexical_cast<std::string>(res.second));
 }
 
 void _set_maximized(bool ison)
@@ -406,6 +421,22 @@ double turbo_speed()
 void save_turbo_speed(const double speed)
 {
 	prefs["turbo_speed"] = speed;
+}
+
+int font_scaling()
+{
+	// Clip at 50 because if it's too low it'll cause crashes
+	return std::max<int>(50, prefs["font_scale"].to_int(100));
+}
+
+void set_font_scaling(int scale)
+{
+	prefs["font_scale"] = scale;
+}
+
+int font_scaled(int size)
+{
+	return (size * font_scaling()) / 100;
 }
 
 bool idle_anim()
@@ -831,6 +862,11 @@ bool animate_map()
 	return preferences::get("animate_map", true);
 }
 
+bool animate_water()
+{
+	return preferences::get("animate_water", true);
+}
+
 bool minimap_movement_coding()
 {
 	return preferences::get("minimap_movement_coding", true);
@@ -884,6 +920,11 @@ void toggle_minimap_draw_terrain()
 void set_animate_map(bool value)
 {
 	set("animate_map", value);
+}
+
+void set_animate_water(bool value)
+{
+	set("animate_water", value);
 }
 
 bool show_standing_animations()

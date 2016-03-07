@@ -375,7 +375,7 @@ void playmp_controller::process_oos(const std::string& err_msg) const {
 		temp_buf << " \n";
 	}
 	scoped_savegame_snapshot snapshot(*this);
-	savegame::oos_savegame save(saved_game_, *gui_);
+	savegame::oos_savegame save(saved_game_, *gui_, ignore_replay_errors_);
 	save.save_game_interactive(gui_->video(), temp_buf.str(), gui::YES_NO);
 }
 
@@ -416,8 +416,9 @@ void playmp_controller::maybe_linger()
 {
 	// mouse_handler expects at least one team for linger mode to work.
 	assert(is_regular_game_end());
-	if (!get_end_level_data_const().transient.linger_mode || gamestate().board_.teams().empty()) {
-		if(!is_host()) {
+	if (!get_end_level_data_const().transient.linger_mode || gamestate().board_.teams().empty() || gui_->video().faked()) {
+		const bool has_next_scenario = !gamestate().gamedata_.next_scenario().empty() && gamestate().gamedata_.next_scenario() != "null";
+		if(!is_host() && has_next_scenario) {
 			// If we continue without lingering we need to
 			// make sure the host uploads the next scenario
 			// before we attempt to download it.

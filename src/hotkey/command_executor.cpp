@@ -30,6 +30,7 @@
 #include "preferences.hpp"
 #include "game_end_exceptions.hpp"
 #include "display.hpp"
+#include "quit_confirmation.hpp"
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -312,10 +313,10 @@ bool command_executor::execute_command(const hotkey_command&  cmd, int /*index*/
 			map_screenshot();
 			break;
 		case HOTKEY_QUIT_TO_DESKTOP:
-			quit_to_desktop();
+			quit_confirmation::quit_to_desktop();
 			break;
 		case HOTKEY_QUIT_GAME:
-			quit_to_main_menu();
+			quit_confirmation::quit_to_title();
 			break;
 		default:
 			return false;
@@ -513,7 +514,7 @@ static void event_execute( const SDL_Event& event, command_executor* executor)
 {
 	if (!executor) return;
 	const hotkey_ptr hk = get_hotkey(event);
-	if (!hk->active()) {
+	if (!hk->active() || hk->is_disabled()) {
 		return;
 	}
 
@@ -667,8 +668,6 @@ void command_executor_default::lua_console()
 {
 	if (get_display().in_game()) {
 		gui2::tlua_interpreter::display(get_video(), gui2::tlua_interpreter::GAME);
-		//WRN_G << "caution: attempting to interface console with game lua kernel when we are not in game...\n";
-		gui2::tlua_interpreter::display(get_video(), gui2::tlua_interpreter::APP);
 	} else {
 		command_executor::lua_console();
 	}
@@ -694,21 +693,5 @@ void command_executor_default::zoom_default()
 void command_executor_default::map_screenshot()
 {
 	make_screenshot(_("Map-Screenshot"), get_video(), boost::bind(&display::screenshot, &get_display(), _1, true));
-}
-void command_executor_default::quit_to_desktop()
-{
-	if(gui2::show_message(get_video(), _("Quit"), _("Do you really want to quit?"), gui2::tmessage::yes_no_buttons) != gui2::twindow::CANCEL) {
-		throw CVideo::quit();
-	}
-}
-void command_executor::quit_to_desktop()
-{
-	throw CVideo::quit();
-}
-void command_executor_default::quit_to_main_menu()
-{
-	if(gui2::show_message(get_video(), _("Quit"), _("Do you really want to quit?"), gui2::tmessage::yes_no_buttons) != gui2::twindow::CANCEL) {
-		throw_quit_game_exception();
-	}
 }
 }

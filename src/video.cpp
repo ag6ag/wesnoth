@@ -249,6 +249,52 @@ surface frameBuffer = NULL;
 bool fake_interactive = false;
 }
 
+namespace video2 {
+
+std::list<events::sdl_handler *> draw_layers;
+
+draw_layering::draw_layering(const bool auto_join) :
+		sdl_handler(auto_join)
+{
+	draw_layers.push_back(this);
+}
+
+draw_layering::~draw_layering()
+{
+	draw_layers.remove(this);
+
+	video2::trigger_full_redraw();
+}
+
+void trigger_full_redraw() {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_Event event;
+	event.type = SDL_WINDOWEVENT;
+	event.window.event = SDL_WINDOWEVENT_RESIZED;
+	event.window.data1 = (*frameBuffer).h;
+	event.window.data2 = (*frameBuffer).w;
+
+	for(std::list<events::sdl_handler*>::iterator it = draw_layers.begin(); it != draw_layers.end(); ++it) {
+		(*it)->handle_window_event(event);
+	}
+#endif
+
+	SDL_Event drawEvent;
+	SDL_UserEvent data;
+
+	data.type = DRAW_ALL_EVENT;
+	data.code = 0;
+	data.data1 = NULL;
+	data.data2 = NULL;
+
+	drawEvent.type = DRAW_ALL_EVENT;
+	drawEvent.user = data;
+	SDL_FlushEvent(DRAW_ALL_EVENT);
+	SDL_PushEvent(&drawEvent);
+}
+}
+
+
 bool CVideo::non_interactive()
 {
 	if (fake_interactive)
@@ -357,7 +403,7 @@ void update_whole_screen()
 }
 
 
-void CVideo::video_event_handler::handle_event(const SDL_Event &event)
+void CVideo::video_event_handler::handle_window_event(const SDL_Event &event)
 {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (event.type == SDL_WINDOWEVENT) {
@@ -366,8 +412,21 @@ void CVideo::video_event_handler::handle_event(const SDL_Event &event)
 			case SDL_WINDOWEVENT_RESTORED:
 			case SDL_WINDOWEVENT_SHOWN:
 			case SDL_WINDOWEVENT_EXPOSED:
-				if (display::get_singleton())
-					display::get_singleton()->redraw_everything();
+				//if (display::get_singleton())
+					//display::get_singleton()->redraw_everything();
+				SDL_Event drawEvent;
+				SDL_UserEvent data;
+
+				data.type = DRAW_ALL_EVENT;
+				data.code = 0;
+				data.data1 = NULL;
+				data.data2 = NULL;
+
+				drawEvent.type = DRAW_ALL_EVENT;
+				drawEvent.user = data;
+
+				SDL_FlushEvent(DRAW_ALL_EVENT);
+				SDL_PushEvent(&drawEvent);
 				break;
 		}
 	}
@@ -835,12 +894,12 @@ static int sdl_display_index(sdl::twindow* window)
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-std::vector<std::pair<int, int> > CVideo::get_available_resolutions()
+std::vector<std::pair<int, int> > CVideo::get_available_resolutions(const bool include_current)
 {
 	std::vector<std::pair<int, int> > result;
 
 	const int modes = SDL_GetNumDisplayModes(sdl_display_index(window.get()));
-	if(modes <= 0) {
+	if (modes <= 0) {
 		std::cerr << "No modes supported\n";
 		return result;
 	}
@@ -848,14 +907,20 @@ std::vector<std::pair<int, int> > CVideo::get_available_resolutions()
 	const std::pair<int,int> min_res = std::make_pair(preferences::min_allowed_width(),preferences::min_allowed_height());
 
 	SDL_DisplayMode mode;
-	for(int i = 0; i < modes; ++i) {
+	for (int i = 0; i < modes; ++i) {
 		if(SDL_GetDisplayMode(0, i, &mode) == 0) {
 			if (mode.w >= min_res.first && mode.h >= min_res.second)
 				result.push_back(std::make_pair(mode.w, mode.h));
 		}
 	}
-	if(std::find(result.begin(), result.end(), min_res) == result.end())
+
+	if (std::find(result.begin(), result.end(), min_res) == result.end()) {
 		result.push_back(min_res);
+	}
+
+	if(include_current) {
+		result.push_back(current_resolution());
+	}
 
 	std::sort(result.begin(), result.end());
 	result.erase(std::unique(result.begin(), result.end()), result.end());
@@ -863,8 +928,9 @@ std::vector<std::pair<int, int> > CVideo::get_available_resolutions()
 	return result;
 }
 #else
-std::vector<std::pair<int, int> > CVideo::get_available_resolutions()
+std::vector<std::pair<int, int> > CVideo::get_available_resolutions(const bool include_current)
 {
+	UNUSED(include_current);
 	std::vector<std::pair<int, int> > result;
 	const SDL_Rect* const * modes;
 	if (const surface& surf = getSurface()) {
@@ -1042,7 +1108,13 @@ bool CVideo::detect_video_settings(std::pair<int,int>& resolution, int& bpp, int
 
 void CVideo::set_fullscreen(bool ison)
 {
-	if (isFullScreen() != ison) {
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	if (window && isFullScreen() != ison) {
+#else
+	if (frameBuffer && isFullScreen() != ison) {
+#endif
+
 		const std::pair<int,int>& res = preferences::resolution();
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)

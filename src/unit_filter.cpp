@@ -231,7 +231,7 @@ bool basic_unit_filter_impl::matches(const unit & u, const map_location& loc, co
 
 bool basic_unit_filter_impl::internal_matches_filter(const unit & u, const map_location& loc) const
 {
-	if (!vcfg["name"].blank() && vcfg["name"].str() != u.name()) {
+	if (!vcfg["name"].blank() && vcfg["name"].t_str() != u.name()) {
 		return false;
 	}
 

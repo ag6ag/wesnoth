@@ -68,6 +68,7 @@
 #include "gui/dialogs/mp_method_selection.hpp"
 #include "gui/dialogs/simple_item_selector.hpp"
 #include "gui/dialogs/screenshot_notification.hpp"
+#include "gui/dialogs/select_orb_colors.hpp"
 #include "gui/dialogs/theme_list.hpp"
 #include "gui/dialogs/title_screen.hpp"
 #include "gui/dialogs/tip.hpp"
@@ -412,10 +413,11 @@ BOOST_AUTO_TEST_CASE(test_gui2)
 	test<gui2::tmp_server_list>();
 	test<gui2::tsimple_item_selector>();
 	test<gui2::tscreenshot_notification>();
+	test<gui2::tselect_orb_colors>();
 	test<gui2::ttheme_list>();
 	test<gui2::ttitle_screen>();
 	test<gui2::ttransient_message>();
-//	test<gui2::tunit_attack>(); /** @todo ENABLE */
+	//test<gui2::tunit_attack>();
 	test<gui2::tunit_create>();
 	test<gui2::twml_error>();
 	test<gui2::twml_message_left>();
@@ -473,6 +475,7 @@ BOOST_AUTO_TEST_CASE(test_gui2)
 	list.erase(std::remove(list.begin(), list.end(), "network_transmission"), list.end());
 	list.erase(std::remove(list.begin(), list.end(), "synced_choice_wait"), list.end());
 	list.erase(std::remove(list.begin(), list.end(), "drop_down_list"), list.end());
+	list.erase(std::remove(list.begin(), list.end(), "preferences"), list.end());
 
 	// Test size() instead of empty() to get the number of offenders
 	BOOST_CHECK_EQUAL(list.size(), 0);
@@ -824,6 +827,15 @@ struct twrapper<gui2::tscreenshot_notification>
 };
 
 template<>
+struct twrapper<gui2::tselect_orb_colors>
+{
+	static gui2::tselect_orb_colors* create()
+	{
+		return new gui2::tselect_orb_colors();
+	}
+};
+
+template<>
 struct twrapper<gui2::ttheme_list>
 {
 	static theme_info make_theme(std::string name)
@@ -861,9 +873,6 @@ struct twrapper<gui2::teditor_generate_map>
 			}
 		}
 		result->set_map_generators(map_generators);
-
-		result->set_gui(
-				static_cast<display*>(&test_utils::get_fake_display(-1, -1)));
 
 		return result;
 	}

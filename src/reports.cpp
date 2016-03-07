@@ -802,6 +802,7 @@ static int attack_info(reports::context & rc, const attack_type &at, config &res
 		add_text(res, flush(str), flush(tooltip));
 	}
 
+	at.set_specials_context_for_listing();
 	std::vector<bool> active;
 	const std::vector<std::pair<t_string, t_string> > &specials = at.special_tooltips(&active);
 	const size_t specials_size = specials.size();
@@ -1133,7 +1134,6 @@ static config time_of_day_at(reports::context & rc, const map_location& mouseove
 	std::string tod_image = tod.image;
 	if (tod.bonus_modified > 0) tod_image += "~BRIGHTEN()";
 	else if (tod.bonus_modified < 0) tod_image += "~DARKEN()";
-	if (preferences::flip_time()) tod_image += "~FL(horiz)";
 
 	return image_report(tod_image, tooltip.str(), "time_of_day_" + tod.id);
 }
@@ -1184,7 +1184,6 @@ static config unit_box_at(reports::context & rc, const map_location& mouseover_h
 	std::string global_tod_image = "themes/classic/" + global_tod.image;
 	if (local_tod.bonus_modified > 0) local_tod_image += "~BRIGHTEN()";
 	else if (local_tod.bonus_modified < 0) local_tod_image += "~DARKEN()";
-	if (preferences::flip_time()) local_tod_image += "~FL(horiz)";
 
 	const gamemap &map = rc.map();
 	t_translation::t_terrain terrain = map.get_terrain(mouseover_hex);

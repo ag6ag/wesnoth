@@ -82,7 +82,7 @@ playsingle_controller::playsingle_controller(const config& level,
 	, turn_data_(replay_sender_, network_reader_)
 	, end_turn_(END_TURN_NONE)
 	, skip_next_turn_(false)
-	, mp_replay_()
+	, replay_()
 {
 	hotkey_handler_.reset(new hotkey_handler(*this, saved_game_)); //upgrade hotkey handler to the sp (whiteboard enabled) version
 
@@ -133,12 +133,13 @@ void playsingle_controller::init_gui(){
 }
 
 
-void playsingle_controller::play_scenario_init(const config& level) {
+void playsingle_controller::play_scenario_init()
+{
 	// At the beginning of the scenario, save a snapshot as replay_start
 	if(saved_game_.replay_start().empty()){
 		saved_game_.replay_start() = to_config();
 	}
-	start_game(level);
+	start_game();
 	if( saved_game_.classification().random_mode != "" && (network::nconnections() != 0)) {
 		// This won't cause errors later but we should notify the user about it in case he didn't knew it.
 		gui2::show_transient_message(
@@ -167,20 +168,31 @@ void playsingle_controller::play_scenario_main_loop()
 		try {
 			play_turn();
 			if (is_regular_game_end()) {
+				turn_data_.send_data();
 				return;
 			}
 			gamestate_->player_number_ = 1;
 		}
 		catch(const reset_gamestate_exception& ex) {
-			/**
-				@TODO: The mp replay feature still doesnt work properly (casues OOS) becasue:
-					1) The undo stack is not reset along with the gamestate (fixed).
-					2) The server_request_number_ is not reset along with the gamestate (fixed).
-					3) chat and other unsynced actions are inserted in the middle of the replay bringing the replay_pos in unorder (fixed).
-					4) untracked changes in side controllers are lost when resetting gamestate. (fixed)
-					5) The game should have a stricter check for whether the loaded game is actually a parent of this game.
-					6) If an action was undone after a game was saved it can casue if teh undone action is in the snapshot of the saved game. (luckyli this is never the case for autosaves)
-			*/
+			//
+			// TODO:
+			//
+			// The MP replay feature still doesn't work properly (causes OOS)
+			// because:
+			//
+			// 1) The undo stack is not reset along with the gamestate (fixed).
+			// 2) The server_request_number_ is not reset along with the
+			//    gamestate (fixed).
+			// 3) chat and other unsynced actions are inserted in the middle of
+			//    the replay bringing the replay_pos in unorder (fixed).
+			// 4) untracked changes in side controllers are lost when resetting
+			//    gamestate (fixed).
+			// 5) The game should have a stricter check for whether the loaded
+			//    game is actually a parent of this game.
+			// 6) If an action was undone after a game was saved it can cause
+			//    OOS if the undone action is in the snapshot of the saved
+			//    game (luckily this is never the case for autosaves).
+			//
 			std::vector<bool> local_players(gamestate().board_.teams().size(), true);
 			//Preserve side controllers, becasue we won't get the side controoller updates again when replaying.
 			for(size_t i = 0; i < local_players.size(); ++i) {
@@ -190,9 +202,11 @@ void playsingle_controller::play_scenario_main_loop()
 			for(size_t i = 0; i < local_players.size(); ++i) {
 				(*resources::teams)[i].set_local(local_players[i]);
 			}
-			play_scenario_init(*ex.level);
-			mp_replay_.reset(new replay_controller(*this, false, ex.level));
-			mp_replay_->play_replay();
+			play_scenario_init();
+			replay_.reset(new replay_controller(*this, false, ex.level));
+			if(ex.start_replay) {
+				replay_->play_replay();
+			}
 		}
 	} //end for loop
 }
@@ -226,7 +240,7 @@ LEVEL_RESULT playsingle_controller::play_scenario(const config& level)
 	}
 	LOG_NG << "entering try... " << (SDL_GetTicks() - ticks()) << "\n";
 	try {
-		play_scenario_init(level);
+		play_scenario_init();
 		// clears level config;
 		this->saved_game_.remove_snapshot();
 
@@ -347,13 +361,13 @@ void playsingle_controller::play_side_impl()
 	if (!skip_next_turn_) {
 		end_turn_ = END_TURN_NONE;
 	}
-	if(mp_replay_.get() != NULL) {
-		REPLAY_RETURN res = mp_replay_->play_side_impl();
+	if(replay_.get() != NULL) {
+		REPLAY_RETURN res = replay_->play_side_impl();
 		if(res == REPLAY_FOUND_END_TURN) {
 			end_turn_ = END_TURN_SYNCED;
 		}
 		if (player_type_changed_) {
-			mp_replay_.reset();
+			replay_.reset();
 		}
 	} else if((current_team().is_local_human() && current_team().is_proxy_human())) {
 		LOG_NG << "is human...\n";
@@ -635,8 +649,8 @@ void playsingle_controller::sync_end_turn()
 
 void playsingle_controller::update_viewing_player()
 {
-	if(mp_replay_ && mp_replay_->is_controlling_view()) {
-		mp_replay_->update_viewing_player();
+	if(replay_ && replay_->is_controlling_view()) {
+		replay_->update_viewing_player();
 	}
 	//Update viewing team in case it has changed during the loop.
 	else if(int side_num = play_controller::find_last_visible_team()) {
@@ -648,9 +662,9 @@ void playsingle_controller::update_viewing_player()
 
 void playsingle_controller::reset_replay()
 {
-	if(mp_replay_ && mp_replay_->allow_reset_replay()) {
-		mp_replay_->stop_replay();
-		throw reset_gamestate_exception(mp_replay_->get_reset_state());
+	if(replay_ && replay_->allow_reset_replay()) {
+		replay_->stop_replay();
+		throw reset_gamestate_exception(replay_->get_reset_state(), false);
 	}
 	else {
 		ERR_NG << "recieved invalid reset replay\n";
@@ -659,9 +673,9 @@ void playsingle_controller::reset_replay()
 
 void playsingle_controller::enable_replay(bool is_unit_test)
 {
-	mp_replay_.reset(new replay_controller(*this, true, boost::shared_ptr<config>( new config(saved_game_.replay_start())), boost::bind(&playsingle_controller::on_replay_end, this, is_unit_test)));
+	replay_.reset(new replay_controller(*this, gamestate().has_human_sides(), boost::shared_ptr<config>( new config(saved_game_.replay_start())), boost::bind(&playsingle_controller::on_replay_end, this, is_unit_test)));
 	if(is_unit_test) {
-		mp_replay_->play_replay();
+		replay_->play_replay();
 	}
 }
 
@@ -670,7 +684,7 @@ bool playsingle_controller::should_return_to_play_side()
 	if(player_type_changed_ || is_regular_game_end()) {
 		return true;
 	}
-	else if (end_turn_ == END_TURN_NONE || mp_replay_.get() != 0 || current_team().is_network()) {
+	else if (end_turn_ == END_TURN_NONE || replay_.get() != 0 || current_team().is_network()) {
 		return false;
 	}
 	else {
@@ -681,7 +695,7 @@ bool playsingle_controller::should_return_to_play_side()
 void playsingle_controller::on_replay_end(bool is_unit_test)
 {
 	if(is_unit_test) {
-		mp_replay_->return_to_play_side();
+		replay_->return_to_play_side();
 		if(!is_regular_game_end()) {
 			end_level_data e;
 			e.proceed_to_next_level = false;

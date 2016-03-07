@@ -243,10 +243,7 @@ LEVEL_RESULT campaign_controller::playmp_scenario(end_level_data &end_level)
 		//(we want to see that message before entering the linger mode)
 		show_carryover_message(playcontroller, end_level, res);
 	}
-	if(!video_.faked())
-	{
-		playcontroller.maybe_linger();
-	}
+	playcontroller.maybe_linger();
 	playcontroller.update_savegame_snapshot();
 	if(mp_info_) {
 		mp_info_->connected_players = playcontroller.all_players();
@@ -284,7 +281,7 @@ LEVEL_RESULT campaign_controller::play_game()
 			state_.expand_mp_options();
 
 #if !defined(ALWAYS_USE_MP_CONTROLLER)
-			if (game_type != game_classification::CAMPAIGN_TYPE::MULTIPLAYER) {
+			if (game_type != game_classification::CAMPAIGN_TYPE::MULTIPLAYER || is_replay_) {
 				res = playsingle_scenario(end_level);
 				if(is_replay_) {
 					return res;
@@ -344,9 +341,8 @@ LEVEL_RESULT campaign_controller::play_game()
 		{
 			return res;
 		}
-		else if(res == LEVEL_RESULT::OBSERVER_END)
+		else if(res == LEVEL_RESULT::OBSERVER_END && mp_info_ && !mp_info_->is_host)
 		{
-			// TODO: does it make sense to ask this question if we are currently the host?
 			const int dlg_res = gui2::show_message(video_, _("Game Over"),
 				_("This scenario has ended. Do you want to continue the campaign?"),
 				gui2::tmessage::yes_no_buttons);
