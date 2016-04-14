@@ -15,8 +15,8 @@
 #ifndef EVENTS_HPP_INCLUDED
 #define EVENTS_HPP_INCLUDED
 
-#include "SDL_events.h"
-#include "SDL_version.h"
+#include <SDL_events.h>
+#include <SDL_version.h>
 #include <vector>
 
 //our user-defined double-click event type
@@ -42,16 +42,14 @@ class sdl_handler
 {
 public:
 	virtual void handle_event(const SDL_Event& event) = 0;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	virtual void handle_window_event(const SDL_Event& event) = 0;
-#endif
 	virtual void process_event() {}
 	virtual void draw() {}
 
 	virtual void volatile_draw() {}
 	virtual void volatile_undraw() {}
 
-	virtual bool requires_event_focus(const SDL_Event * = NULL) const { return false; }
+	virtual bool requires_event_focus(const SDL_Event * = nullptr) const { return false; }
 
 	virtual void process_help_string(int /*mousex*/, int /*mousey*/) {}
 	virtual void process_tooltip_string(int /*mousex*/, int /*mousey*/) {}
@@ -71,9 +69,6 @@ protected:
 	}
 
 private:
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	int unicode_;
-#endif
 	bool has_joined_;
 	bool has_joined_global_;
 };
@@ -101,15 +96,13 @@ struct event_context
 //causes events to be dispatched to all handler objects.
 void pump();
 
-#if SDL_VERSION_ATLEAST(2,0,0)
 //look for resize events and update references to the screen area
 void peek_for_resize();
-#endif
 
 struct pump_info {
 	pump_info() : resize_dimensions(), ticks_(0) {}
 	std::pair<int,int> resize_dimensions;
-	int ticks(unsigned *refresh_counter=NULL, unsigned refresh_rate=1);
+	int ticks(unsigned *refresh_counter=nullptr, unsigned refresh_rate=1);
 private:
 	int ticks_; //0 if not calculated
 };
@@ -123,6 +116,7 @@ public:
 };
 
 void raise_process_event();
+void raise_resize_event();
 void raise_draw_event();
 void raise_draw_all_event();
 void raise_volatile_draw_event();
@@ -145,17 +139,5 @@ void discard_input();
 
 typedef std::vector<events::sdl_handler*> sdl_handler_vector;
 
-#if ! SDL_VERSION_ATLEAST(2,0,0)
-
-/**
- * Removes events from the queue.
- *
- * This emulates the function available in SDL 2.0.
- *
- * @param type                    The type of event to flush.
- */
-void SDL_FlushEvent(Uint32 type);
-
-#endif
 
 #endif

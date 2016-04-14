@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <string>
 #include "lua_types.hpp" // the luatype typedef
-#include "unit_ptr.hpp"
+#include "units/ptr.hpp"
 
 struct lua_State;
 
@@ -45,6 +45,13 @@ bool luaW_pcall(lua_State *L, int nArgs, int nRets, bool allow_wml_error = false
 unit& luaW_checkunit(lua_State *L, int index, bool only_on_map = false);
 class lua_unit;
 lua_unit* luaW_pushlocalunit(lua_State *L, unit& u);
+/**
+ * Similar to luaW_checkunit/luaW_tounit but returns a unit_ptr, use this instead of
+ * luaW_checkunit/luaW_tounit when uasing an api that needs unit_ptr.
+ */
+unit_ptr luaW_tounit_ptr(lua_State *L, int index, bool only_on_map);
+unit_ptr luaW_checkunit_ptr(lua_State *L, int index, bool only_on_map);
+
 struct map_location;
 
 /**
@@ -71,7 +78,7 @@ public:
 	unit* get();
 	unit_ptr get_shared();
 
-	void clear_ref() { uid = 0; ptr = unit_ptr(); side = 0; c_ptr = NULL; }
+	void clear_ref() { uid = 0; ptr = unit_ptr(); side = 0; c_ptr = nullptr; }
 	// Clobbers loc
 	bool put_map(const map_location &loc);
 };

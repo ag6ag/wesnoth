@@ -16,7 +16,7 @@
 #include "global.hpp"
 
 #include "log.hpp"
-#include "map.hpp"
+#include "map/map.hpp"
 #include "pathfind/pathfind.hpp"
 #include "pathfind/teleport.hpp"
 
@@ -148,7 +148,7 @@ plain_route a_star_search(const map_location& src, const map_location& dst,
 	//----------------- PRE_CONDITIONS ------------------
 	assert(src.valid(width, height, border));
 	assert(dst.valid(width, height, border));
-	assert(calc != NULL);
+	assert(calc != nullptr);
 	assert(stop_at <= calc->getNoPathValue());
 	//---------------------------------------------------
 

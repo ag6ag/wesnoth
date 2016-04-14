@@ -22,9 +22,9 @@
 #include "hotkey/hotkey_item.hpp"
 
 #include "construct_dialog.hpp"
-#include "display.hpp"
 #include "gettext.hpp"
 #include "marked-up_text.hpp"
+#include "sdl/rect.hpp"
 
 namespace hotkey {
 
@@ -35,7 +35,7 @@ hotkey::hotkey_ptr show_binding_dialog(CVideo& video, const std::string& id)
 	const std::string text = _("Press desired hotkey (Esc cancels)");
 
 	SDL_Rect clip_rect = sdl::create_rect(0, 0, video.getx(), video.gety());
-	SDL_Rect text_size = font::draw_text(NULL, clip_rect, font::SIZE_LARGE,
+	SDL_Rect text_size = font::draw_text(nullptr, clip_rect, font::SIZE_LARGE,
 			font::NORMAL_COLOR, text, 0, 0);
 
 	const int centerx = video.getx() / 2;
@@ -69,9 +69,7 @@ hotkey::hotkey_ptr show_binding_dialog(CVideo& video, const std::string& id)
 		}
 
 		SDL_PollEvent(&event);
-#if SDL_VERSION_ATLEAST(2,0,0)
 		events::peek_for_resize();
-#endif
 
 	} while (event.type  != SDL_KEYUP && event.type != SDL_JOYBUTTONUP
 			&& event.type != SDL_JOYHATMOTION

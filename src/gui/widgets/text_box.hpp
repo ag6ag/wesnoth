@@ -20,6 +20,8 @@
 namespace gui2
 {
 
+// ------------ WIDGET -----------{
+
 /**
  * Class for text input history.
  *
@@ -145,12 +147,12 @@ protected:
 	/***** ***** ***** ***** layout functions ***** ***** ***** *****/
 
 	/** See @ref twidget::place. */
-	virtual void place(const tpoint& origin, const tpoint& size) OVERRIDE;
+	virtual void place(const tpoint& origin, const tpoint& size) override;
 
 	/***** ***** ***** ***** Inherited ***** ***** ***** *****/
 
 	/** See @ref tcontrol::update_canvas. */
-	virtual void update_canvas() OVERRIDE;
+	virtual void update_canvas() override;
 
 	/** Inherited from ttext_. */
 	void goto_end_of_line(const bool select = false)
@@ -255,7 +257,7 @@ private:
 	void handle_key_clear_line(SDLMod modifier, bool& handled);
 
 	/** See @ref tcontrol::get_control_type. */
-	virtual const std::string& get_control_type() const OVERRIDE;
+	virtual const std::string& get_control_type() const override;
 
 	/** Inherited from tcontrol. */
 	void load_config_extra();
@@ -275,6 +277,44 @@ private:
 	void signal_handler_left_button_double_click(const event::tevent event,
 												 bool& handled);
 };
+
+// }---------- DEFINITION ---------{
+
+struct ttext_box_definition : public tcontrol_definition
+{
+	explicit ttext_box_definition(const config& cfg);
+
+	struct tresolution : public tresolution_definition_
+	{
+		explicit tresolution(const config& cfg);
+
+		tformula<unsigned> text_x_offset;
+		tformula<unsigned> text_y_offset;
+	};
+};
+
+// }---------- BUILDER -----------{
+
+namespace implementation
+{
+
+struct tbuilder_text_box : public tbuilder_control
+{
+public:
+	explicit tbuilder_text_box(const config& cfg);
+
+	using tbuilder_control::build;
+
+	twidget* build() const;
+
+	std::string history;
+
+	size_t max_input_length;
+};
+
+} // namespace implementation
+
+// }------------ END --------------
 
 } // namespace gui2
 

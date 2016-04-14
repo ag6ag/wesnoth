@@ -15,8 +15,8 @@
 #ifndef GAME_CLASSIFICATION_HPP_INCLUDED
 #define GAME_CLASSIFICATION_HPP_INCLUDED
 
-#include "make_enum.hpp"
-#include "savegame_config.hpp"
+#include "utils/make_enum.hpp"
+
 #include <vector>
 
 class config;
@@ -25,7 +25,7 @@ class config;
 extern const std::string DEFAULT_DIFFICULTY;
 
 //meta information of the game
-class game_classification : public savegame::savegame_config
+class game_classification
 {
 public:
 	game_classification();

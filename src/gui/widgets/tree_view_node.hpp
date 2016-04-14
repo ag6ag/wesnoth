@@ -15,12 +15,17 @@
 #ifndef GUI_WIDGETS_TREE_VIEW_NODE_HPP_INCLUDED
 #define GUI_WIDGETS_TREE_VIEW_NODE_HPP_INCLUDED
 
-#include "gui/auxiliary/window_builder/tree_view.hpp"
+#include "gui/widgets/widget.hpp"
+#include "gui/widgets/grid.hpp"
 
 #include <boost/ptr_container/ptr_vector.hpp>
 
 namespace gui2
 {
+
+namespace implementation {
+	struct ttree_node;
+}
 
 class tselectable_;
 class ttree_view;
@@ -31,7 +36,7 @@ class ttree_view_node : public twidget
 	friend class ttree_view;
 
 public:
-	typedef implementation::tbuilder_tree_view::tnode tnode_definition;
+	typedef implementation::ttree_node tnode_definition;
 	ttree_view_node(
 			const std::string& id,
 			const std::vector<tnode_definition>& node_definitions,
@@ -91,7 +96,7 @@ public:
 	 */
 	bool is_root_node() const
 	{
-		return parent_node_ == NULL;
+		return parent_node_ == nullptr;
 	}
 
 	/**
@@ -130,25 +135,25 @@ public:
 	 *
 	 * @todo Implement properly.
 	 */
-	virtual iterator::twalker_* create_walker() OVERRIDE
+	virtual iterator::twalker_* create_walker() override
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	/** See @ref twidget::find_at. */
 	virtual twidget* find_at(const tpoint& coordinate,
-							 const bool must_be_active) OVERRIDE;
+							 const bool must_be_active) override;
 
 	/** See @ref twidget::find_at. */
 	virtual const twidget* find_at(const tpoint& coordinate,
-								   const bool must_be_active) const OVERRIDE;
+								   const bool must_be_active) const override;
 
 	/** See @ref twidget::find. */
-	twidget* find(const std::string& id, const bool must_be_active) OVERRIDE;
+	twidget* find(const std::string& id, const bool must_be_active) override;
 
 	/** See @ref twidget::find. */
 	const twidget* find(const std::string& id,
-						const bool must_be_active) const OVERRIDE;
+						const bool must_be_active) const override;
 
 	/**
 	 * The "size" of the widget.
@@ -195,7 +200,7 @@ public:
 	 *                   2 : on folded to unfolded
 	*/
 	void set_callback_state_change(
-			const int scope, boost::function<void(twidget&)> callback)
+			const int scope, std::function<void(twidget&)> callback)
 	{
 		switch (scope) {
 			case 0:
@@ -209,12 +214,19 @@ public:
 				break;
 		}
 	}
-
+	ttree_view_node* get_last_visible_parent_node();
+	ttree_view_node* get_node_above();
+	ttree_view_node* get_node_below();
+	ttree_view_node* get_selectable_node_above();
+	ttree_view_node* get_selectable_node_below();
+	void select_node();
+	tgrid& get_grid() { return grid_; }
+	void layout_initialise(const bool full_initialisation);
 private:
 
 	int calculate_ypos();
 	/** See @ref twidget::request_reduce_width. */
-	virtual void request_reduce_width(const unsigned maximum_width) OVERRIDE;
+	virtual void request_reduce_width(const unsigned maximum_width) override;
 
 	/**
 	 * Our parent node.
@@ -252,6 +264,7 @@ private:
 	/** The label to show our selected state. */
 	tselectable_* label_;
 
+	bool unfolded_;
 	void fold_internal();
 	void unfold_internal();
 
@@ -264,10 +277,10 @@ private:
 								  const std::vector<twidget*>& call_stack);
 
 	/** See @ref twidget::calculate_best_size. */
-	virtual tpoint calculate_best_size() const OVERRIDE;
+	virtual tpoint calculate_best_size() const override;
 
 	/** See @ref twidget::disable_click_dismiss. */
-	bool disable_click_dismiss() const OVERRIDE;
+	bool disable_click_dismiss() const override;
 
 	tpoint calculate_best_size(const int indention_level,
 							   const unsigned indention_step_size) const;
@@ -277,30 +290,30 @@ private:
 	tpoint get_unfolded_size() const;
 
 	/** See @ref twidget::set_origin. */
-	virtual void set_origin(const tpoint& origin) OVERRIDE;
+	virtual void set_origin(const tpoint& origin) override;
 
 	/** See @ref twidget::place. */
-	virtual void place(const tpoint& origin, const tpoint& size) OVERRIDE;
+	virtual void place(const tpoint& origin, const tpoint& size) override;
 
 	unsigned
 	place(const unsigned indention_step_size, tpoint origin, unsigned width);
 
 	/** See @ref twidget::set_visible_rectangle. */
-	virtual void set_visible_rectangle(const SDL_Rect& rectangle) OVERRIDE;
+	virtual void set_visible_rectangle(const SDL_Rect& rectangle) override;
 
 	/** See @ref twidget::impl_draw_children. */
 	virtual void impl_draw_children(surface& frame_buffer,
 									int x_offset,
-									int y_offset) OVERRIDE;
+									int y_offset) override;
 									
 	/** See tselectable_::set_callback_state_change. */
-	boost::function<void(twidget&)> callback_state_change_;
+	std::function<void(twidget&)> callback_state_change_;
 
 	/** See tselectable_::set_callback_state_change. */
-	boost::function<void(twidget&)> callback_state_to_folded_;
+	std::function<void(twidget&)> callback_state_to_folded_;
 
 	/** See tselectable_::set_callback_state_change. */
-	boost::function<void(twidget&)> callback_state_to_unfolded_;
+	std::function<void(twidget&)> callback_state_to_unfolded_;
 
 	// FIXME rename to icon
 	void signal_handler_left_button_click(const event::tevent event);

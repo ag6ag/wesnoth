@@ -15,9 +15,8 @@
 #ifndef WIDGET_HPP_INCLUDED
 #define WIDGET_HPP_INCLUDED
 
-#include "../events.hpp"
-#include "../sdl/utils.hpp"
-#include "video.hpp"
+#include "events.hpp"
+#include "sdl/utils.hpp"
 
 class CVideo;
 
@@ -91,9 +90,7 @@ protected:
 	virtual sdl_handler_vector member_handlers() { return sdl_handler::handler_members(); }
 
 	virtual void handle_event(SDL_Event const &);
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	virtual void handle_window_event(SDL_Event const &event);
-#endif
 	bool focus_;		// Should user input be ignored?
 
 	bool mouse_locked() const;

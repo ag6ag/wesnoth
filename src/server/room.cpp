@@ -16,7 +16,7 @@
 #include "game.hpp"
 #include "player_network.hpp"
 #include "room.hpp"
-#include "../log.hpp"
+#include "log.hpp"
 #include "serialization/string_utils.hpp"
 #include "util.hpp"
 
@@ -130,7 +130,7 @@ void room::send_server_message(const char* message, network::connection sock,
 						   simple_wml::document* docptr) const
 {
 	simple_wml::document docbuf;
-	if(docptr == NULL) {
+	if(docptr == nullptr) {
 		docptr = &docbuf;
 	}
 	simple_wml::document& doc = *docptr;

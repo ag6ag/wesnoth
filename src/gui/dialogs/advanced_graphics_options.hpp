@@ -17,7 +17,7 @@
 
 #include "gui/dialogs/dialog.hpp"
 #include "gui/widgets/group.hpp"
-#include "make_enum.hpp"
+#include "utils/make_enum.hpp"
 
 namespace gui2
 {
@@ -56,7 +56,7 @@ private:
 	virtual const std::string& window_id() const;
 
 	/** Inherited from tdialog. */
-	void pre_show(CVideo& video, twindow& window);
+	void pre_show(twindow& window);
 
 	/** Inherited from tdialog. */
 	void post_show(twindow& window);

@@ -27,12 +27,6 @@ namespace preferences {
 		VIEW_FRIENDS
 	};
 
-	struct display_manager
-	{
-		display_manager(display* disp);
-		~display_manager();
-	};
-
 	void set_scroll_to_action(bool ison);
 
 	void set_turbo(bool ison);
@@ -45,7 +39,7 @@ namespace preferences {
 	void set_idle_anim(bool ison);
 	void set_idle_anim_rate(int rate);
 
-	std::string show_wesnothd_server_search(CVideo&);
+	void show_wesnothd_server_search(CVideo&);
 	void show_preferences_dialog(CVideo& disp, const config& game_cfg,
 		const DIALOG_OPEN_TO initial_view = VIEW_DEFAULT);
 	bool show_theme_dialog(CVideo& disp);

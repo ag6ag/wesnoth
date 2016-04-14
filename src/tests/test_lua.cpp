@@ -14,7 +14,7 @@
 #define GETTEXT_DOMAIN "wesnoth-test"
 
 #include <boost/test/unit_test.hpp>
-#include "../scripting/lua_kernel_base.hpp"
+#include "scripting/lua_kernel_base.hpp"
 
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(fpu_rounding)
 
 BOOST_AUTO_TEST_CASE(lua_rounding)
 {
-	lua_kernel_base kernel(NULL);
+	lua_kernel_base kernel(nullptr);
 	lua_State * L = kernel.get_state();
 
 	BOOST_CHECK_EQUAL(lua_round(L, -2.5),  -2);

@@ -34,14 +34,13 @@
 #include "log.hpp"                      // for LOG_STREAM, log_domain
 #include "sdl/utils.hpp"                // for surface
 #include "show_dialog.hpp"              // for dialog_frame, etc
-#include "terrain.hpp"                  // for terrain_type
-#include "unit.hpp"                     // for unit
-#include "unit_types.hpp"               // for unit_type, unit_type_data, etc
+#include "terrain/terrain.hpp"                  // for terrain_type
+#include "units/unit.hpp"                     // for unit
+#include "units/types.hpp"               // for unit_type, unit_type_data, etc
 #include "video.hpp"                    // for CVideo, resize_lock
 #include "widgets/button.hpp"           // for button
 
 #include <assert.h>                     // for assert
-#include <stddef.h>                     // for NULL
 #include <algorithm>                    // for min
 #include <ostream>                      // for basic_ostream, operator<<, etc
 #include <vector>                       // for vector, vector<>::iterator
@@ -94,14 +93,14 @@ extern config dummy_cfg;
 
 help_manager::help_manager(const config *cfg) //, gamemap *_map)
 {
-	game_cfg = cfg == NULL ? &dummy_cfg : cfg;
+	game_cfg = cfg == nullptr ? &dummy_cfg : cfg;
 //	map = _map;
 }
 
 help_manager::~help_manager()
 {
-	game_cfg = NULL;
-//	map = NULL;
+	game_cfg = nullptr;
+//	map = nullptr;
 	toplevel.clear();
 	hidden_sections.clear();
     // These last numbers must be reset so that the content is regenerated.
@@ -163,7 +162,6 @@ void show_help(CVideo& video, const section &toplevel_sec,
 {
 	const events::event_context dialog_events_context;
 	const gui::dialog_manager manager;
-	const resize_lock prevent_resizing;
 
 	CVideo& screen = video;
 	const surface& scr = screen.getSurface();

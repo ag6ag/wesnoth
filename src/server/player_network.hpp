@@ -16,12 +16,12 @@
 #ifndef SERVER_PLAYER_NETWORK_HPP_INCLUDED
 #define SERVER_PLAYER_NETWORK_HPP_INCLUDED
 
-#include "../network.hpp"
+#include "network.hpp"
 #include "player.hpp"
 #include "simple_wml.hpp"
 
-#include "utils/boost_function_guarded.hpp"
-#include "../log.hpp"
+#include "utils/functional.hpp"
+#include "log.hpp"
 
 extern lg::log_domain log_config_pn;
 namespace wesnothd {
@@ -72,7 +72,7 @@ void send_to_many(simple_wml::document& data,
 /*
 void send_to_many(simple_wml::document& data,
 				  const connection_vector& vec,
-				  boost::function<bool (network::connection)> pred,
+				  std::function<bool (network::connection)> pred,
 				  const network::connection exclude = 0,
 				  std::string packet_type = "");
 */

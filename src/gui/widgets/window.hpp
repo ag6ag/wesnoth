@@ -22,18 +22,17 @@
 #define GUI_WIDGETS_WINDOW_HPP_INCLUDED
 
 #include "cursor.hpp"
-#include "formula_callable.hpp"
-#include "formula_function.hpp"
+#include "formula/callable.hpp"
+#include "formula/function.hpp"
 #include "gui/auxiliary/formula.hpp"
-#include "gui/auxiliary/event/handler.hpp"
-#include "gui/auxiliary/window_builder.hpp"
+#include "gui/core/event/handler.hpp"
+#include "gui/core/window_builder.hpp"
 #include "gui/widgets/panel.hpp"
 #include "sdl/utils.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
-#include "utils/boost_function_guarded.hpp"
 
 class CVideo;
 
@@ -44,6 +43,8 @@ namespace gui2 { struct tpoint; }
 
 namespace gui2
 {
+
+// ------------ WIDGET -----------{
 
 class tdialog;
 class tdebug_layout_graph;
@@ -100,7 +101,7 @@ public:
 	 *
 	 * @param handle              The instance id of the window.
 	 *
-	 * @returns                   The window or NULL.
+	 * @returns                   The window or nullptr.
 	 */
 	static twindow* window_instance(const unsigned handle);
 
@@ -279,11 +280,11 @@ public:
 
 	/** See @ref twidget::find_at. */
 	virtual twidget* find_at(const tpoint& coordinate,
-							 const bool must_be_active) OVERRIDE;
+							 const bool must_be_active) override;
 
 	/** See @ref twidget::find_at. */
 	virtual const twidget* find_at(const tpoint& coordinate,
-								   const bool must_be_active) const OVERRIDE;
+								   const bool must_be_active) const override;
 
 	/** Inherited from twidget. */
 	tdialog* dialog()
@@ -292,11 +293,11 @@ public:
 	}
 
 	/** See @ref twidget::find. */
-	twidget* find(const std::string& id, const bool must_be_active) OVERRIDE;
+	twidget* find(const std::string& id, const bool must_be_active) override;
 
 	/** See @ref twidget::find. */
 	const twidget* find(const std::string& id,
-						const bool must_be_active) const OVERRIDE;
+						const bool must_be_active) const override;
 
 #if 0
 	/** @todo Implement these functions. */
@@ -667,16 +668,7 @@ private:
 	Uint8 mouse_button_state_;
 
 	/** See @ref tcontrol::get_control_type. */
-	virtual const std::string& get_control_type() const OVERRIDE;
-
-	/**
-	 * Inherited from tpanel.
-	 *
-	 * Don't call this function it's only asserts.
-	 */
-	void draw(surface& surface,
-			  const bool force = false,
-			  const bool invalidate_background = false);
+	virtual const std::string& get_control_type() const override;
 
 	/**
 	 * The list with dirty items in the window.
@@ -769,6 +761,22 @@ private:
 	void signal_handler_request_placement(const event::tevent event,
 										  bool& handled);
 };
+
+// }---------- DEFINITION ---------{
+
+struct twindow_definition : public tcontrol_definition
+{
+	explicit twindow_definition(const config& cfg);
+
+	struct tresolution : public tpanel_definition::tresolution
+	{
+		explicit tresolution(const config& cfg);
+
+		tbuilder_grid_ptr grid;
+	};
+};
+
+// }------------ END --------------
 
 } // namespace gui2
 

@@ -26,7 +26,7 @@
 #include "filechooser.hpp"
 #include "filesystem.hpp"
 #include "formatter.hpp"
-#include "formula_string_utils.hpp"
+#include "formula/string_utils.hpp"
 #include "game_preferences.hpp"
 #include "gettext.hpp"
 #include "gui/dialogs/message.hpp"
@@ -36,30 +36,9 @@
 #include "gui/widgets/window.hpp"
 #include "log.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/math/common_factor_rt.hpp>
 
 namespace preferences {
-
-static display* disp = NULL;
-
-display_manager::display_manager(display* d)
-{
-	disp = d;
-
-	load_hotkeys();
-
-	set_grid(grid());
-	set_turbo(turbo());
-	set_turbo_speed(turbo_speed());
-	set_scroll_to_action(scroll_to_action());
-	set_color_cursors(preferences::get("color_cursors", false));
-}
-
-display_manager::~display_manager()
-{
-	disp = NULL;
-}
 
 void show_preferences_dialog(CVideo& video, const config& game_cfg, const DIALOG_OPEN_TO initial_view)
 {
@@ -87,8 +66,8 @@ void set_turbo(bool ison)
 {
 	_set_turbo(ison);
 
-	if(disp != NULL) {
-		disp->set_turbo(ison);
+	if(display::get_singleton()) {
+		display::get_singleton()->set_turbo(ison);
 	}
 }
 
@@ -96,8 +75,8 @@ void set_turbo_speed(double speed)
 {
 	save_turbo_speed(speed);
 
-	if(disp != NULL) {
-		disp->set_turbo_speed(speed);
+	if(display::get_singleton()) {
+		display::get_singleton()->set_turbo_speed(speed);
 	}
 }
 
@@ -110,8 +89,8 @@ void set_grid(bool ison)
 {
 	_set_grid(ison);
 
-	if(disp != NULL) {
-		disp->set_grid(ison);
+	if(display::get_singleton()) {
+		display::get_singleton()->set_grid(ison);
 	}
 }
 
@@ -124,15 +103,17 @@ void set_color_cursors(bool value)
 
 void set_idle_anim(bool ison) {
 	_set_idle_anim(ison);
-	if(disp != NULL) {
-		disp->set_idle_anim(ison);
+
+	if(display::get_singleton()) {
+		display::get_singleton()->set_idle_anim(ison);
 	}
 }
 
 void set_idle_anim_rate(int rate) {
 	_set_idle_anim_rate(rate);
-	if(disp != NULL) {
-		disp->set_idle_anim_rate(rate);
+
+	if(display::get_singleton()) {
+		display::get_singleton()->set_idle_anim_rate(rate);
 	}
 }
 
@@ -169,7 +150,7 @@ bool show_theme_dialog(CVideo& video)
 	return false;
 }
 
-std::string show_wesnothd_server_search(CVideo& video)
+void show_wesnothd_server_search(CVideo& video)
 {
 	// Showing file_chooser so user can search the wesnothd
 	std::string old_path = preferences::get_mp_server_program_name();
@@ -211,10 +192,9 @@ std::string show_wesnothd_server_search(CVideo& video)
 			, &symbols);
 
 	int res = dialogs::show_file_chooser_dialog(video, path, title, false, filename);
-	if (res == 0)
-		return path;
-	else
-		return "";
+	if (res == 0) {
+		preferences::set_mp_server_program_name(path);
+	}
 }
 
 } // end namespace preferences

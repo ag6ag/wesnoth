@@ -14,11 +14,16 @@
 
 #pragma once
 
+#include "gui/core/widget_definition.hpp"
+#include "gui/core/window_builder.hpp"
+
 #include "gui/widgets/control.hpp"
 #include "gui/widgets/selectable.hpp"
 
 namespace gui2
 {
+
+// ------------ WIDGET -----------{
 
 /**
  * Simple push button.
@@ -31,13 +36,13 @@ public:
 	/***** ***** ***** ***** Inherited ***** ***** ***** *****/
 
 	/** See @ref tcontrol::set_active. */
-	virtual void set_active(const bool active) OVERRIDE;
+	virtual void set_active(const bool active) override;
 
 	/** See @ref tcontrol::get_active. */
-	virtual bool get_active() const OVERRIDE;
+	virtual bool get_active() const override;
 
 	/** See @ref tcontrol::get_state. */
-	virtual unsigned get_state() const OVERRIDE;
+	virtual unsigned get_state() const override;
 
 	/** Inherited from tclickable. */
 	void connect_click_handler(const event::tsignal_function& signal)
@@ -61,19 +66,19 @@ public:
 	void set_selected(int selected);
 	
 	/** See tselectable_::set_callback_state_change. */
-	boost::function<void(twidget&)> callback_state_change_;
+	std::function<void(twidget&)> callback_state_change_;
 
 	/** Inherited from tselectable_ */
-	virtual unsigned get_value() const OVERRIDE { return selected_; }
+	virtual unsigned get_value() const override { return selected_; }
 
 	/** Inherited from tselectable_ */
-	virtual void set_value(const unsigned value ) OVERRIDE { set_selected(value); }
+	virtual void set_value(const unsigned value ) override { set_selected(value); }
 
 	/** Inherited from tselectable_ */
-	virtual unsigned num_states() const OVERRIDE { return values_.size(); }
+	virtual unsigned num_states() const override { return values_.size(); }
 
 	/** Inherited from tselectable_ */
-	virtual void set_callback_state_change(boost::function<void(twidget&)> callback)
+	virtual void set_callback_state_change(std::function<void(twidget&)> callback)
 	{
 		selected_callback_ = callback;
 	}
@@ -118,10 +123,10 @@ private:
 	 */
 	int selected_;
 
-	boost::function<void(twidget&)> selected_callback_;
+	std::function<void(twidget&)> selected_callback_;
 
 	/** See @ref tcontrol::get_control_type. */
-	virtual const std::string& get_control_type() const OVERRIDE;
+	virtual const std::string& get_control_type() const override;
 
 	/***** ***** ***** signal handlers ***** ****** *****/
 
@@ -139,5 +144,42 @@ private:
 										  bool& handled);
 };
 
+// }---------- DEFINITION ---------{
+
+struct tcombobox_definition : public tcontrol_definition
+{
+	explicit tcombobox_definition(const config& cfg);
+
+	struct tresolution : public tresolution_definition_
+	{
+		explicit tresolution(const config& cfg);
+	};
+};
+
+// }---------- BUILDER -----------{
+
+class tcontrol;
+
+namespace implementation
+{
+
+struct tbuilder_combobox : public tbuilder_control
+{
+public:
+	explicit tbuilder_combobox(const config& cfg);
+
+	using tbuilder_control::build;
+
+	twidget* build() const;
+
+private:
+	std::string retval_id_;
+	int retval_;
+	std::vector<std::string> options_;
+};
+
+} // namespace implementation
+
+// }------------ END --------------
 
 } // namespace gui2

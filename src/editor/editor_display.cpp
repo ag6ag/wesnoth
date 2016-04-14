@@ -15,8 +15,8 @@
 
 #include "editor_display.hpp"
 #include "reports.hpp"
-#include "terrain_builder.hpp"
-#include "unit_map.hpp"
+#include "terrain/builder.hpp"
+#include "units/map.hpp"
 
 #include <boost/shared_ptr.hpp>
 
@@ -151,7 +151,7 @@ void editor_display::draw_sidebar()
 		text = get_map().get_terrain_editor_string(mouseoverHex_);
 		refresh_report("terrain", &element);
 		refresh_report("terrain_info");
-		text = str_cast(mouseoverHex_);
+		text = lexical_cast<std::string>(mouseoverHex_);
 		refresh_report("position", &element);
 	}
 

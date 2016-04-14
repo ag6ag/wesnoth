@@ -103,7 +103,7 @@ void widget::update_location(SDL_Rect const &rect)
 
 const SDL_Rect* widget::clip_rect() const
 {
-	return clip_ ? &clip_rect_ : NULL;
+	return clip_ ? &clip_rect_ : nullptr;
 }
 
 void widget::bg_register(SDL_Rect const &rect)
@@ -349,7 +349,6 @@ void widget::handle_event(SDL_Event const &event) {
 	}
 }
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 void widget::handle_window_event(SDL_Event const &event) {
 	if (event.type == SDL_WINDOWEVENT) {
 		switch (event.window.event) {
@@ -361,7 +360,6 @@ void widget::handle_window_event(SDL_Event const &event) {
 		}
 	}
 }
-#endif
 
 
 }

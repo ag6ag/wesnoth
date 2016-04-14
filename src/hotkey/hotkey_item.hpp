@@ -16,14 +16,11 @@
 #ifndef HOTKEY_ITEM_HPP_INCLUDED
 #define HOTKEY_ITEM_HPP_INCLUDED
 
-#include "SDL_events.h"
-#include "SDL.h"
+#include <SDL_events.h>
+#include <SDL.h>
 #include <boost/shared_ptr.hpp>
 #include <vector>
 
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-#include "sdl/keyboard.hpp"
-#endif
 
 class config;
 class CVideo;

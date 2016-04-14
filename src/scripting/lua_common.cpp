@@ -33,7 +33,6 @@
 #include "log.hpp"
 #include "gettext.hpp"
 
-#include <boost/foreach.hpp>
 #include <cstring>
 #include <iterator>                     // for distance, advance
 #include <new>                          // for operator new
@@ -213,7 +212,7 @@ static int impl_vconfig_get(lua_State *L)
 	if (shallow_literal || strcmp(m, "__shallow_parsed") == 0)
 	{
 		lua_newtable(L);
-		BOOST_FOREACH(const config::attribute &a, v->get_config().attribute_range()) {
+		for (const config::attribute &a : v->get_config().attribute_range()) {
 			if (shallow_literal)
 				luaW_pushscalar(L, a.second);
 			else
@@ -380,7 +379,7 @@ std::string register_gettext_metatable(lua_State *L)
 
 	static luaL_Reg const callbacks[] = {
 		{ "__call", 	    &impl_gettext},
-		{ NULL, NULL }
+		{ nullptr, nullptr }
 	};
 	luaL_setfuncs(L, callbacks, 0);
 
@@ -404,7 +403,7 @@ std::string register_tstring_metatable(lua_State *L)
 		{ "__lt",	        &impl_tstring_lt},
 		{ "__le",	        &impl_tstring_le},
 		{ "__eq",	        &impl_tstring_eq},
-		{ NULL, NULL }
+		{ nullptr, nullptr }
 	};
 	luaL_setfuncs(L, callbacks, 0);
 
@@ -427,7 +426,7 @@ std::string register_vconfig_metatable(lua_State *L)
 		{ "__len",          &impl_vconfig_size},
 		{ "__pairs",        &impl_vconfig_pairs},
 		{ "__ipairs",       &impl_vconfig_ipairs},
-		{ NULL, NULL }
+		{ nullptr, nullptr }
 	};
 	luaL_setfuncs(L, callbacks, 0);
 
@@ -495,6 +494,33 @@ void luaW_pushscalar(lua_State *L, config::attribute_value const &v)
 	v.apply_visitor(luaW_pushscalar_visitor(L));
 }
 
+bool luaW_toscalar(lua_State *L, int index, config::attribute_value& v)
+{
+	switch (lua_type(L, index)) {
+		case LUA_TBOOLEAN:
+			v = luaW_toboolean(L, -1);
+			break;
+		case LUA_TNUMBER:
+			v = lua_tonumber(L, -1);
+			break;
+		case LUA_TSTRING:
+			v = lua_tostring(L, -1);
+			break;
+		case LUA_TUSERDATA:
+		{
+			if (t_string * tptr = static_cast<t_string *>(luaL_testudata(L, -1, tstringKey))) {
+				v = *tptr;
+				break;
+			} else {
+				return false;
+			}
+		}
+		default:
+			return false;
+	}
+	return true;
+}
+
 bool luaW_hasmetatable(lua_State *L
 		, int index
 		, luatypekey key)
@@ -547,7 +573,7 @@ void luaW_filltable(lua_State *L, config const &cfg)
 		return;
 
 	int k = 1;
-	BOOST_FOREACH(const config::any_child &ch, cfg.all_children_range())
+	for (const config::any_child &ch : cfg.all_children_range())
 	{
 		lua_createtable(L, 2, 0);
 		lua_pushstring(L, ch.key.c_str());
@@ -557,11 +583,81 @@ void luaW_filltable(lua_State *L, config const &cfg)
 		lua_rawseti(L, -2, 2);
 		lua_rawseti(L, -2, k++);
 	}
-	BOOST_FOREACH(const config::attribute &attr, cfg.attribute_range())
+	for (const config::attribute &attr : cfg.attribute_range())
 	{
 		luaW_pushscalar(L, attr.second);
 		lua_setfield(L, -2, attr.first.c_str());
 	}
+}
+
+void luaW_pushlocation(lua_State *L, const map_location& ml)
+{
+	lua_createtable(L, 2, 0);
+	
+	lua_pushinteger(L, 1);
+	lua_pushinteger(L, ml.x + 1);
+	lua_rawset(L, -3);
+	
+	lua_pushinteger(L, 2);
+	lua_pushinteger(L, ml.y + 1);
+	lua_rawset(L, -3);
+}
+
+bool luaW_tolocation(lua_State *L, int index, map_location& loc) {
+	if (!lua_checkstack(L, LUA_MINSTACK)) {
+		return false;
+	}
+	if (lua_isnoneornil(L, index)) {
+		// Need this special check because luaW_tovconfig returns true in this case
+		return false;
+	}
+	
+	vconfig dummy_vcfg = vconfig::unconstructed_vconfig();
+	
+	index = lua_absindex(L, index);
+	
+	if (lua_istable(L, index) || luaW_tounit(L, index) || luaW_tovconfig(L, index, dummy_vcfg)) {
+		map_location result;
+		int x_was_num = 0, y_was_num = 0;
+		lua_getfield(L, index, "x");
+		result.x = lua_tonumberx(L, -1, &x_was_num) - 1;
+		lua_getfield(L, index, "y");
+		result.y = lua_tonumberx(L, -1, &y_was_num) - 1;
+		lua_pop(L, 2);
+		if (!x_was_num || !y_was_num) {
+			// If we get here and it was userdata, checking numeric indices won't help
+			// (It won't help if it was a config either, but there's no easy way to check that.)
+			if (lua_isuserdata(L, index)) {
+				return false;
+			}
+			lua_rawgeti(L, index, 1);
+			result.x = lua_tonumberx(L, -1, &x_was_num) - 1;
+			lua_rawgeti(L, index, 2);
+			result.y = lua_tonumberx(L, -1, &y_was_num) - 1;
+			lua_pop(L, 2);
+		}
+		if (x_was_num && y_was_num) {
+			loc = result;
+			return true;
+		}
+	} else if (lua_isnumber(L, index) && lua_isnumber(L, index + 1)) {
+		// If it's a number, then we consume two elements on the stack
+		// Since we have no way of notifying the caller that we have
+		// done this, we remove the first number from the stack.
+		loc.x = lua_tonumber(L, index) - 1;
+		lua_remove(L, index);
+		loc.y = lua_tonumber(L, index) - 1;
+		return true;
+	}
+	return false;
+}
+
+map_location luaW_checklocation(lua_State *L, int index)
+{
+	map_location result;
+	if (!luaW_tolocation(L, index, result))
+		luaL_typerror(L, index, "location");
+	return result;
 }
 
 void luaW_pushconfig(lua_State *L, config const &cfg)
@@ -582,9 +678,8 @@ bool luaW_toconfig(lua_State *L, int index, config &cfg)
 		return false;
 
 	// Get the absolute index of the table.
+	index = lua_absindex(L, index);
 	int initial_top = lua_gettop(L);
-	if (-initial_top <= index && index <= -1)
-		index = initial_top + index + 1;
 
 	switch (lua_type(L, index))
 	{
@@ -626,28 +721,22 @@ bool luaW_toconfig(lua_State *L, int index, config &cfg)
 		if (lua_isnumber(L, -2)) continue;
 		if (!lua_isstring(L, -2)) return_misformed();
 		config::attribute_value &v = cfg[lua_tostring(L, -2)];
-		switch (lua_type(L, -1)) {
-			case LUA_TBOOLEAN:
-				v = luaW_toboolean(L, -1);
-				break;
-			case LUA_TNUMBER:
-				v = lua_tonumber(L, -1);
-				break;
-			case LUA_TSTRING:
-				v = lua_tostring(L, -1);
-				break;
-			case LUA_TUSERDATA:
-			{
-				if (t_string * tptr = static_cast<t_string *>(luaL_testudata(L, -1, tstringKey))) {
-					v = *tptr;
-					break;
-				} else {
-					return_misformed();
-				}
+		if (lua_istable(L, -1)) {
+			int subindex = lua_absindex(L, -1);
+			std::ostringstream str;
+			for (int i = 1, i_end = lua_rawlen(L, subindex); i <= i_end; ++i, lua_pop(L, 1)) {
+				lua_rawgeti(L, -1, i);
+				config::attribute_value item;
+				if (!luaW_toscalar(L, -1, item)) return_misformed();
+				if (i > 1) str << ',';
+				str << item;
 			}
-			default:
-				return_misformed();
-		}
+			// If there are any string keys, it's misformed
+			for (lua_pushnil(L); lua_next(L, subindex); lua_pop(L, 1)) {
+				if (!lua_isnumber(L, -2)) return_misformed();
+			}
+			v = str.str();
+		} else if (!luaW_toscalar(L, -1, v)) return_misformed();
 	}
 
 	lua_settop(L, initial_top);
@@ -700,30 +789,22 @@ vconfig luaW_checkvconfig(lua_State *L, int index, bool allow_missing)
 	return result;
 }
 
-
-#ifdef __GNUC__
-__attribute__((sentinel))
-#endif
-bool luaW_getglobal(lua_State *L, ...)
+bool luaW_getglobal(lua_State *L, const std::vector<std::string>& path)
 {
 	lua_pushglobaltable(L);
-	va_list ap;
-	va_start(ap, L);
-	while (const char *s = va_arg(ap, const char *))
+	for (const std::string& s : path)
 	{
 		if (!lua_istable(L, -1)) goto discard;
-		lua_pushstring(L, s);
+		lua_pushlstring(L, s.c_str(), s.size());
 		lua_rawget(L, -2);
 		lua_remove(L, -2);
 	}
 
 	if (lua_isnil(L, -1)) {
 		discard:
-		va_end(ap);
 		lua_pop(L, 1);
 		return false;
 	}
-	va_end(ap);
 	return true;
 }
 
@@ -732,7 +813,7 @@ bool luaW_toboolean(lua_State *L, int n)
 	return lua_toboolean(L,n) != 0;
 }
 
-bool LuaW_pushvariable(lua_State *L, variable_access_const& v)
+bool luaW_pushvariable(lua_State *L, variable_access_const& v)
 {
 	try
 	{
@@ -760,7 +841,7 @@ bool LuaW_pushvariable(lua_State *L, variable_access_const& v)
 	}
 }
 
-bool LuaW_checkvariable(lua_State *L, variable_access_create& v, int n)
+bool luaW_checkvariable(lua_State *L, variable_access_create& v, int n)
 {
 	int variabletype = lua_type(L, n);
 	try

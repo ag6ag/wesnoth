@@ -17,7 +17,7 @@
 #include "gui/dialogs/advanced_graphics_options.hpp"
 
 #include "desktop/notifications.hpp"
-#include "gui/auxiliary/find_widget.tpp"
+#include "gui/auxiliary/find_widget.hpp"
 #include "gui/dialogs/message.hpp"
 #include "gui/widgets/button.hpp"
 #include "gui/widgets/label.hpp"
@@ -27,11 +27,9 @@
 
 #include "image.hpp"
 #include "preferences.hpp"
-#include "formula_string_utils.hpp"
+#include "formula/string_utils.hpp"
 
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
-#include <boost/assign/list_of.hpp>
+#include "utils/functional.hpp"
 
 #include "gettext.hpp"
 
@@ -40,7 +38,7 @@ namespace gui2
 
 REGISTER_DIALOG(advanced_graphics_options)
 
-const std::vector<std::string> tadvanced_graphics_options::scale_cases = boost::assign::list_of("zoom")("hex");
+const std::vector<std::string> tadvanced_graphics_options::scale_cases = {"zoom", "hex"};
 
 tadvanced_graphics_options::SCALING_ALGORITHM tadvanced_graphics_options::get_scale_pref(const std::string& pref_id)
 {
@@ -80,23 +78,23 @@ tadvanced_graphics_options::tadvanced_graphics_options()
 {
 }
 
-void tadvanced_graphics_options::pre_show(CVideo& /*video*/, twindow& window)
+void tadvanced_graphics_options::pre_show(twindow& window)
 {
-	BOOST_FOREACH(const std::string & i, scale_cases) {
+	for(const std::string & i : scale_cases) {
 		setup_scale_case(i, window);
 	}
 
 	/*
 	tbutton * defaults;
 	defaults = &find_widget<tbutton>(&window,"revert_to_defaults", false);
-	connect_signal_mouse_left_click(*defaults, boost::bind(&revert_to_default_pref_values, boost::ref(window)));
+	connect_signal_mouse_left_click(*defaults, std::bind(&revert_to_default_pref_values, std::ref(window)));
 	*/
 }
 
 void tadvanced_graphics_options::post_show(twindow& /*window*/)
 {
 	if(get_retval() == twindow::OK) {
-		BOOST_FOREACH(const std::string & i, scale_cases) {
+		for(const std::string & i : scale_cases) {
 			update_scale_case(i);
 		}
 		image::update_from_preferences();
